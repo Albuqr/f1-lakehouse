@@ -26,3 +26,15 @@ trusted. Threshold not yet chosen.
 ## Metric naming
 Not naming the slope "degradation" - it contains fuel burn and tyre
 wear together. Final name deferred until the values have been seen.
+
+## Star schema
+fct_lap at driver x lap x session grain.
+Four dimensions: dim_driver, dim_team, dim_compound, dim_session.
+
+Team on the fact, not on dim_driver: drivers change teams, and a lap
+must record the team it was driven for at the time. Storing team on
+the driver would relabel historical laps.
+
+Circuit flattened into dim_session rather than a separate dim_circuit.
+Keeps every dimension one hop from the fact.
+
