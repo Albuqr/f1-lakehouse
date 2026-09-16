@@ -38,3 +38,16 @@ the driver would relabel historical laps.
 Circuit flattened into dim_session rather than a separate dim_circuit.
 Keeps every dimension one hop from the fact.
 
+
+## dim_session
+One row per session, not per event. A race weekend is one event with
+five sessions; the key must be year + round + session type so that
+qualifying and race laps from the same weekend stay separate.
+
+year and session_type are not in session.event. They come from the
+get_session() arguments and are stamped on when the dimension is built.
+
+## Circuit identifier
+FastF1 gives Location ("Barcelona"), not a circuit name. Using Location
+as the circuit identifier rather than inventing a track name that is
+not in the source.
