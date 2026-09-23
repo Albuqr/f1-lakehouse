@@ -51,3 +51,24 @@ get_session() arguments and are stamped on when the dimension is built.
 FastF1 gives Location ("Barcelona"), not a circuit name. Using Location
 as the circuit identifier rather than inventing a track name that is
 not in the source.
+
+## Scope: five races
+2025 rounds 20 to 24, named explicitly so the scope is a list to check
+against rather than a rule that grows:
+
+- Round 20, Mexico City Grand Prix, Mexico City, conventional
+- Round 21, Sao Paulo Grand Prix, Sao Paulo, sprint_qualifying
+- Round 22, Las Vegas Grand Prix, Las Vegas, conventional
+- Round 23, Qatar Grand Prix, Lusail, sprint_qualifying
+- Round 24, Abu Dhabi Grand Prix, Yas Island, conventional
+
+Chosen for circuit variety, since the degradation question compares
+across circuits and one race cannot answer it. Race sessions only;
+the sprint sessions at rounds 21 and 23 are not loaded.
+
+2023 Spanish GP was the original single race and is dropped from the
+scope. Its verification work (grain arithmetic, exclusion rule proved
+against IsAccurate) stands and is recorded above.
+
+Adding more races is a separate decision after this releases, not an
+extension of this one.
