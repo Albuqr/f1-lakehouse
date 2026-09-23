@@ -72,3 +72,26 @@ against IsAccurate) stands and is recorded above.
 
 Adding more races is a separate decision after this releases, not an
 extension of this one.
+
+## Exclusion rule, corrected on five races
+The Barcelona rule (lap 1, in-lap, out-lap) was incomplete. On the
+five-race set it missed 245 laps that IsAccurate flags, every one of
+them with a non-green track status. Barcelona had no safety cars or
+yellows at all, so the two rules agreed there by coincidence.
+
+TrackStatus is a string and concatenates codes when the status changes
+during a lap ("12" is green then yellow, "671" is VSC, VSC ending,
+green). A fully green lap is exactly "1".
+
+Rule now: lap 1, or in-lap, or out-lap, or TrackStatus != "1".
+This is a superset of IsAccurate: it excludes 64 laps that FastF1
+accepts, all of them "12".
+
+Those 64 are excluded deliberately. A yellow means the driver lifted
+somewhere on the lap, the data does not say where or whether they were
+near it, and the degradation metric measures tenths. 64 of 5623 laps
+is 1.1%, which is a cheap price for knowing every remaining lap was
+green throughout.
+
+Lesson recorded: the original rule was verified on a single clean race
+and that was not enough to establish it.
