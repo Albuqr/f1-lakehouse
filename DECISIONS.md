@@ -129,3 +129,52 @@ consistent on the dashboard when they simply stopped early.
 Threshold: 40 pace laps. There is a natural gap in the data between
 32 and 42 laps. It excludes 7 of 96 groups; a threshold of 30 would
 exclude 6, so the stricter floor costs one group.
+
+## Consistency varies by circuit, not mainly by driver
+Averaging the per-driver standard deviations by circuit:
+
+  Sao Paulo     0.78 s
+  Abu Dhabi     0.84 s
+  Mexico City   0.99 s
+  Las Vegas     1.02 s
+  Qatar         1.30 s
+
+Drivers are about 66% more variable at Qatar than at Sao Paulo, and
+the pattern holds across the field. So the headline is the circuit,
+not a driver ranking. A driver ranking built from this data would
+largely be measuring which circuits each driver happened to run well
+at.
+
+What this does not establish: the cause. Qatar is abrasive, so tyres
+may degrade fast enough that lap times drift within a stint. The
+metric cannot separate a driver varying lap to lap from pace changing
+steadily through a stint. A perfectly smooth degradation curve
+produces a high standard deviation too.
+
+Averaging standard deviations is defensible here because group lap
+counts are similar after the 40-lap threshold, but it is a mean of
+aggregates and should be described as such.
+
+## The Qatar variance is not degradation
+Hypothesis: Qatar's high lap-time variance is tyre degradation.
+Not supported.
+
+VER, Qatar, stint 3, laps 34 to 57 with no gaps. The shape is a V,
+not a slope: times fall from 84.8 to 83.5 around laps 45 to 50, then
+climb back to 85.0. Between lap 44 (84.701) and lap 45 (83.515) there
+is a 1.2 second step in a single lap. Degradation moves in hundredths
+per lap, so a step that size is something discrete - DRS, traffic, a
+restart - and this data does not say which.
+
+The same driver at Sao Paulo, which has the lower variance overall,
+shows the cleaner upward drift: 73.3 to 74.1 over 19 laps. So the
+circuit with more variance has the less degradation-like shape.
+
+Consequence for the metric: a standard deviation over a race gives the
+same number whether lap times drifted smoothly or stepped once. It
+measures lap-time spread, not driver inconsistency, and the spread can
+come from degradation, a one-off event, traffic or the driver. The
+dashboard labels it as spread and says so.
+
+Evidence is one driver and two stints. This is a counter-example to
+the hypothesis, not a general finding about either circuit.
