@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 .idea/
 .env
+.jupyter_runtime/
