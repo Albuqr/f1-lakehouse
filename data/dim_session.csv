@@ -1,0 +1,6 @@
+session_key,round_number,country,location,event_name,event_format,event_date,year,session_type
+1,20,Mexico,Mexico City,Mexico City Grand Prix,conventional,2025-10-26 00:00:00,2025,R
+2,21,Brazil,São Paulo,São Paulo Grand Prix,sprint_qualifying,2025-11-09 00:00:00,2025,R
+3,22,United States,Las Vegas,Las Vegas Grand Prix,conventional,2025-11-22 00:00:00,2025,R
+4,23,Qatar,Lusail,Qatar Grand Prix,sprint_qualifying,2025-11-30 00:00:00,2025,R
+5,24,United Arab Emirates,Yas Island,Abu Dhabi Grand Prix,conventional,2025-12-07 00:00:00,2025,R
