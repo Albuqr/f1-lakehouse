@@ -178,3 +178,64 @@ dashboard labels it as spread and says so.
 
 Evidence is one driver and two stints. This is a counter-example to
 the hypothesis, not a general finding about either circuit.
+
+## Pace trend: per driver per stint, minimum 10 laps
+The slope of lap time against tyre age is fitted per driver per stint,
+not pooled by compound and circuit. Pooling mixes cars, and the gap
+between a fast car and a slow one is seconds while degradation is
+hundredths per lap, so a pooled slope would mostly measure which
+drivers ran that compound.
+
+A lap-number window was considered and rejected. Checking min and max
+lap number per compound per circuit showed most compounds spanning
+nearly the whole race, because every driver's stints on that compound
+are pooled together. The window separates nothing at that grain.
+Fitting per stint handles the fuel confound instead: one stint is one
+car, one tyre set, and a narrow band of fuel load.
+
+Stint lengths: 237 stints, median 21 laps, quartiles 15 and 25, and a
+tail of stints of 5 laps or fewer. Threshold of 10 laps keeps 205
+stints; 15 would keep 181. Took 10, since 10 points is enough to fit
+a line and the extra 24 stints are worth keeping.
+
+Circuit and compound slopes are then averages of these per-stint
+slopes.
+
+## Pace trend per lap of tyre age: results
+Slope of lap time against tyre age, fitted per driver per stint with
+scipy linregress, minimum 10 laps per stint. 205 of 237 stints
+qualified. Groups below 5 stints dropped; the data gaps from 2 to 9,
+so the floor costs nothing extra.
+
+  SOFT    Sao Paulo     +0.080 s/lap   (9 stints)
+  MEDIUM  Sao Paulo     +0.046         (34)
+  MEDIUM  Abu Dhabi     +0.034         (23)
+  SOFT    Mexico City   +0.022         (26)
+  MEDIUM  Mexico City   +0.013         (16)
+  HARD    Abu Dhabi     -0.000         (21)
+  HARD    Qatar         -0.036         (13)
+  HARD    Las Vegas     -0.044         (19)
+  MEDIUM  Qatar         -0.048         (25)
+  MEDIUM  Las Vegas     -0.054         (14)
+
+Negative means cars got faster as the tyre aged: fuel burn outweighed
+tyre wear. That happens at Las Vegas and Qatar on every compound.
+Sao Paulo is the only circuit with a clear positive trend.
+
+Within every circuit that has two compounds, the softer one has the
+higher slope. Same direction in all four cases, which is a better
+signal than any single number.
+
+Across all 205 stints the median slope is +0.006 with quartiles at
+-0.037 and +0.035, so pooled across circuits there is no net
+degradation signal at all. The two effects roughly cancel, and which
+one wins depends on the circuit.
+
+Fit quality: median absolute r is 0.58, upper quartile 0.74. 49 of 205
+stints are below 0.3 and effectively flat.
+
+## Metric name
+Not "degradation". The number is negative at two circuits, and a
+degradation figure that says tyres improve is a lie. It is a pace
+trend per lap of tyre age, and it contains fuel burn and tyre wear
+together.
