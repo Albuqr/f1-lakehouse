@@ -95,3 +95,37 @@ green throughout.
 
 Lesson recorded: the original rule was verified on a single clean race
 and that was not enough to establish it.
+
+## Output format: Parquet for analysis, CSV for BI
+Writing the tables to CSV and reading them back loses every dtype.
+Observed on the round trip: all timedelta columns came back as object
+(text), the deliberate Int64 casts reverted to plain int64, and
+track_status came back as int64 when it was a string.
+
+track_status is the dangerous one. The exclusion rule tests
+track_status != "1", and it works because the column is a string that
+concatenates codes. Read back as a number the comparison still runs
+but no longer means the same thing, and it fails silently.
+
+CSV has no schema. Any pipeline that round-trips through it has to
+re-apply types on read, and forgetting one column is invisible.
+
+The build now writes Parquet as well, and analysis reads Parquet.
+CSV stays because Looker Studio reads CSV and not Parquet, so the BI
+layer needs it.
+
+## Consistency metric: minimum 40 pace laps per group
+Standard deviation of green-flag lap time is grouped by driver and
+session. Groups with few laps are drivers who retired or crashed out
+early.
+
+The problem is not noise, it is bias. Plotting lap count against
+standard deviation showed low-count groups sitting at or below the
+spread of full-race groups, not scattered around it. The five-lap
+group had the lowest standard deviation on the chart. A short sample
+has not had time to vary, so those drivers would appear as the most
+consistent on the dashboard when they simply stopped early.
+
+Threshold: 40 pace laps. There is a natural gap in the data between
+32 and 42 laps. It excludes 7 of 96 groups; a threshold of 30 would
+exclude 6, so the stricter floor costs one group.
