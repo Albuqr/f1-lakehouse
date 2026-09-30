@@ -44,3 +44,10 @@ def pace_trend(fct, dim_compound, dim_session):
 
     return stintscheck
 
+def stint_laps(fct, driver_key, session_key, stint):
+    pace = fct[fct["is_pace_lap"]].copy()
+    pace["lap_time_s"] = pace["lap_time"].dt.total_seconds()
+
+    pace = pace[(pace['driver_key'] == driver_key) & (pace['session_key'] == session_key) & (pace['stint'] == stint)].copy().sort_values("tyre_life")
+
+    return pace
