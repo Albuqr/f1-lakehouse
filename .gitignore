@@ -1,0 +1,6 @@
+.venv/
+ff1_cache/
+__pycache__/
+*.pyc
+.idea/
+.env
