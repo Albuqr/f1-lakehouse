@@ -43,3 +43,5 @@ print(laps["is_pace_lap"].sum())
 
 ver = laps[(laps["Driver"] == "VER") & laps["is_pace_lap"]]
 print(ver[["LapNumber", "Stint", "Compound", "TyreLife", "LapTime", "SpeedST", "Position"]].to_string())
+
+print(session.event)
