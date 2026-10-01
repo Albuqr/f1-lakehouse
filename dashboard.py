@@ -7,6 +7,7 @@ import fastf1.plotting
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 
 import analysis
@@ -22,10 +23,18 @@ OUTLINE = "#222222"
 NEUTRAL = "#5A5A5A"  # consistency bars: graphite, so Pirelli colours stay reserved for compounds
 CONTEXT = "#D3D3D3"  # drivers not highlighted in the all-races view
 THIN = "#BDBDBD"  # circuit averages resting on too few drivers
+PARTIAL = "#F1F1F1"  # background of small-multiple panels missing some races
+MUTED = "#7A7A7A"
 INK = "#222222"
 COMPOUNDS = list(PIRELLI)
 TABS = ["Stint explorer", "Consistency", "Degradation"]
+HEADINGS = {
+    "Stint explorer": "One driver's race, stint by stint",
+    "Consistency": "How consistent were drivers within a stint?",
+    "Degradation": "How quickly did each compound lose pace?",
+}
 TIE = 0.001  # s/lap: compounds closer than this at a circuit are reported as level
+SPREAD_RATIO = 3  # driver spread within a race this many times the circuit spread reads as "barely varies"
 
 
 def version():
@@ -139,8 +148,72 @@ st.html("""<style>
 @keyframes fade-in { from { opacity: 0; } }
 </style>""")  # ponytail: grows bars up from their base; negative bars would need transform-origin top
 
-st.title(f"Tyre pace in the last {len(sessions)} races of {sessions['year'].iat[-1]}")
+year = sessions["year"].iat[-1]
+
+
+@st.dialog(f"Tyre pace in the last {len(sessions)} races of {year}", width="large")
+def overview():
+    # Every figure here is read from the data or from analysis.py when the dialog opens.
+    a = analysis
+    excluded = {flag: int(fct[flag].sum()) for flag in ["is_first_lap", "is_in_lap", "is_out_lap", "is_not_green"]}
+    fitted = int(fits["slope"].notna().sum())
+    both = pace.merge(raw_pace[["compound_key", "session_key", "mean"]], on=["compound_key", "session_key"],
+                      suffixes=("", "_raw"))
+
+    def section(title, items):
+        st.markdown(f"#### {title}\n" + "\n".join(i if i.startswith("  ") else f"- {i}" for i in items))
+
+    section("The data", [
+        f"Public race timing for the last {len(sessions)} races of the {year} season, loaded with FastF1: "
+        f"{join(f'{short(r.event_name)} ({r.event_date:%d %b})' for r in sessions.itertuples())}. "
+        f"{fct['driver_key'].nunique()} drivers, {len(fct):,} laps.",
+        "It holds lap and sector times, tyre compound and age, pit stops and track status. It does not hold fuel "
+        "loads, tyre temperatures or pressures, or car setup, so fuel is estimated and temperature effects can't "
+        "be separated from wear.",
+    ])
+    section("Pace laps", [
+        f"{int(fct['is_pace_lap'].sum()):,} of {len(fct):,} laps are pace laps, run at racing speed. Excluded, "
+        "with some laps falling under more than one rule:",
+        f"  - the first lap of the race ({excluded['is_first_lap']}): standing start, not a flying lap;",
+        f"  - in-laps ({excluded['is_in_lap']}) and out-laps ({excluded['is_out_lap']}): time lost in the pit lane;",
+        f"  - laps not fully under green ({excluded['is_not_green']}): yellow flags, safety car, VSC or red flag "
+        "slow the field.",
+        f"The first {a.SKIP_LAPS} laps of every stint are also dropped before fitting, while the tyres warm up.",
+    ])
+    section("Fuel correction", [
+        "A car gets lighter as it burns fuel, which makes it faster and hides tyre wear. Each lap time gets "
+        f"{a.FUEL_K:g} s added back per kg burned so far, assuming {a.FUEL_KG:g} kg burned evenly over the race.",
+        "Both constants are assumptions: real fuel loads aren't public and the time cost per kg varies by circuit. "
+        f"Without the correction, {int((both['mean_raw'] < 0).sum())} of {len(both)} compound averages would show "
+        "tyres getting faster with age.",
+    ])
+    section("What the measures mean", [
+        "**Stint trend** (s/lap): the slope of a straight line through a stint's fuel-corrected lap times against "
+        "tyre age. How much pace the tyre lost per lap. Degradation averages it per compound per circuit.",
+        "**Residual scatter** (s): how far a stint's laps sit from that line, as a standard deviation. Low means "
+        "repeatable lap to lap, with wear and fuel already taken out. Consistency averages it over a driver's "
+        "stints in a race.",
+    ])
+    section("Thresholds", [
+        f"A stint is fitted only with at least {a.MIN_FIT_LAPS} laps left after the drop, so "
+        f"{a.SKIP_LAPS + a.MIN_FIT_LAPS} in total. {fitted:,} of {len(fits):,} stints qualify.",
+        f"Degradation shows a compound at a circuit only with at least {a.MIN_COMPOUND_STINTS} fitted stints, and "
+        f"reports compounds within {TIE:g} s/lap of each other as level.",
+        f"Consistency counts a driver in a race only with at least {a.MIN_STINTS} fitted stints, and hatches a "
+        f"circuit average built on fewer than {a.MIN_CIRCUIT_DRIVERS} drivers as low confidence.",
+    ])
+
+
+if not st.session_state.get("overview_seen"):  # open once per session, not on every rerun
+    st.session_state.overview_seen = True
+    overview()
+
+with st.container(horizontal=True, vertical_alignment="center"):
+    heading = st.empty()  # filled once the tabs report which one is open
+    if st.button("About this data", icon=":material/info:", type="tertiary"):
+        overview()
 stint_tab, cons_tab, deg_tab = st.tabs(TABS, key="tab", on_change="rerun")
+heading.header(HEADINGS[st.session_state.tab])
 
 # ---------------------------------------------------------------- Degradation
 with deg_tab:
@@ -307,41 +380,61 @@ with cons_tab:
     st.subheader("All races")
     wide = cons.pivot_table(index="driver_code", columns="circuit", values="resid_sd").reindex(columns=race_order)
     races = wide.notna().sum(axis=1)
-    ranked = wide[races >= races.median()].mean(axis=1).sort_values()
-    best, worst = list(ranked.index[:2]), list(ranked.index[-2:])
-    codes = sorted(wide.index)
+    mean = wide.mean(axis=1)
+    full = races == len(race_order)
+    # Averages over different numbers of races aren't comparable: rank full coverage, then group the rest.
+    order = pd.concat([mean[full].sort_values(),
+                       pd.DataFrame({"r": -races, "m": mean})[~full].sort_values(["r", "m"])["m"]]).index
     latest = cons.sort_values("session_key").groupby("driver_code")["circuit"].last()  # each driver's latest team
-    style = {c: styles_at(latest[c], [c])[c] for c in codes}
-    fig = go.Figure()
-    # Grey context: every driver in one trace, broken between drivers.
-    fig.add_scatter(
-        x=[x for _ in codes for x in [*race_order, None]], y=[y for c in codes for y in [*wide.loc[c], None]],
-        text=[c for c in codes for _ in range(len(race_order) + 1)], mode="lines+markers", showlegend=False,
-        line=dict(color=CONTEXT, width=1), marker=dict(color=CONTEXT, size=6),
-        hovertemplate="%{text} · %{x}<br>%{y:.2f} s<extra></extra>",
-    )
-    for c in codes:  # teammates share a colour; fastf1's line style and marker tell them apart
+    style = {c: styles_at(latest[c], [c])[c] for c in order}
+    field = by_circuit.set_index("circuit")["resid_sd"].reindex(race_order)
+    abbr = [c[:3].upper() for c in race_order]
+    cols = len(race_order)
+    rows = -(-len(order) // cols)
+    fig = make_subplots(rows=rows, cols=cols, shared_xaxes=True, shared_yaxes=True,
+                        subplot_titles=[f"<b>{c}</b>  {mean[c]:.2f}  <span style='color:{MUTED}'>"
+                                        f"{races[c]} of {len(race_order)} races</span>" for c in order],
+                        vertical_spacing=0.07, horizontal_spacing=0.025)
+    for i, c in enumerate(order):
+        r, k = divmod(i, cols)
         s = style[c]
-        fig.add_scatter(
-            x=race_order, y=wide.loc[c], name=c, mode="lines+markers",
-            visible=True if c in best + worst else "legendonly",
+        if not full[c]:
+            fig.add_shape(type="rect", xref="x domain", yref="y domain", x0=0, x1=1, y0=0, y1=1, layer="below",
+                          fillcolor=PARTIAL, line_width=0, row=r + 1, col=k + 1)
+        fig.add_scatter(x=abbr, y=field, mode="lines", line=dict(color=CONTEXT, width=2), hoverinfo="skip",
+                        showlegend=False, row=r + 1, col=k + 1)
+        fig.add_scatter(  # teammates share a colour; fastf1's line style and marker tell them apart
+            x=abbr, y=wide.loc[c], customdata=race_order, mode="lines+markers", showlegend=False, connectgaps=False,
             line=dict(color=s["color"], width=2.5, dash=s["dash"]),
-            marker=dict(color=s["color"], size=10, symbol=s["symbol"], line=dict(color=s["color"], width=1)),
-            hovertemplate=f"<b>{c}</b> · %{{x}}<br>%{{y:.2f}} s<extra></extra>",
+            marker=dict(color=s["color"], size=9, symbol=s["symbol"], line=dict(color=OUTLINE, width=0.5)),
+            hovertemplate=f"<b>{c}</b> · %{{customdata}}<br>%{{y:.2f}} s<extra></extra>", row=r + 1, col=k + 1,
         )
-    fig.update_layout(template="plotly_white", margin=dict(t=20), height=480,
-                      legend=dict(title_text="Driver"))
-    fig.update_yaxes(title="Residual scatter (s)", rangemode="tozero")
+    fig.update_layout(template="plotly_white", height=175 * rows + 40, margin=dict(t=30, b=10))
+    fig.update_yaxes(range=[0, wide.max().max() * 1.1], nticks=4, ticksuffix=" s")
+    fig.update_annotations(font=dict(size=13, color=INK))
     st.plotly_chart(fig, key="cons_all_chart")
     st.caption(
-        f"Highlighted by default: {join(best)}, the most consistent, and {join(worst)}, the least, among drivers "
-        f"counted at {races.median():g} or more of the {len(race_order)} races. Team colours; teammates are told "
-        f"apart by solid or dashed line and x or o marker. Click a driver in the legend to add or remove them; "
-        f"double-click to isolate one. Gaps are races where a driver had fewer than {analysis.MIN_DRIVER_LAPS} "
-        f"fitted laps."
+        f"One panel per driver, with their average and the number of races it covers. The {int(full.sum())} "
+        f"drivers counted at all {len(race_order)} races come first, most consistent first. The "
+        f"{int((~full).sum())} shaded panels follow, by races covered and then average: an average over fewer "
+        f"races isn't comparable with a full one. Lines join only consecutive races; a gap is a race where the "
+        f"driver had fewer than {analysis.MIN_STINTS} fitted stints. Races left to right: {join(race_order)}. "
+        f"Grey line: the circuit average. Team colours; teammates are told apart by solid or dashed line and x or "
+        f"o marker."
     )
 
-    st.subheader("Circuit average")
+    first, last = by_circuit.iloc[0], by_circuit.iloc[-1]
+    between = last.resid_sd - first.resid_sd
+    within = cons.groupby("circuit")["resid_sd"].agg(lambda x: x.max() - x.min())  # driver spread at each race
+    ratio = within.median() / between
+    barely = ratio >= SPREAD_RATIO
+    st.subheader("Consistency barely varies by circuit" if barely else "Consistency varies by circuit")
+    st.markdown(
+        f"Circuit averages span **{between:.2f} s**, from {first.resid_sd:.2f} at {first.circuit} to "
+        f"{last.resid_sd:.2f} at {last.circuit}. Within a single race, drivers span **{within.min():.2f} to "
+        f"{within.max():.2f} s** (median {within.median():.2f}), about {ratio:.0f} times as much"
+        + (": the driver matters far more than the circuit." if barely else ".")
+    )
     low = by_circuit["drivers"] < analysis.MIN_CIRCUIT_DRIVERS
 
     def pick_race():
@@ -360,26 +453,34 @@ with cons_tab:
         hovertemplate="<b>%{x}</b>: %{y:.2f} s, average of %{customdata[0]} drivers<br><br>%{customdata[1]}<extra></extra>",
     ))
     fig.update_layout(template="plotly_white", margin=dict(t=20), hoverlabel=dict(font_family="monospace"))
-    fig.update_yaxes(title="Residual scatter (s)", range=[0, by_circuit["resid_sd"].max() * 1.25])
+    # Same scale as the per-race chart, so the circuit spread is seen against the driver spread.
+    fig.update_yaxes(title="Residual scatter (s)", range=[0, cons["resid_sd"].max() * 1.12])
     st.plotly_chart(fig, key="cons_chart", on_select=pick_race, selection_mode="points")
     st.caption(
-        (f"Hatched bars average fewer than {analysis.MIN_CIRCUIT_DRIVERS} drivers: read them as indicative only. "
-         if low.any() else "") + "Hover a bar for the drivers behind it; click it to open that race in Per race above."
+        "Drawn on the same scale as the per-race chart. "
+        + (f"Hatched bars average fewer than {analysis.MIN_CIRCUIT_DRIVERS} drivers: read them as indicative only. "
+           if low.any() else "") + "Hover a bar for the drivers behind it; click it to open that race in Per race above."
     )
 
-    first, last = by_circuit.iloc[0], by_circuit.iloc[-1]
     thinnest = by_circuit.loc[by_circuit["drivers"].idxmin()]
+    # Is the order real? Compare each gap between neighbouring circuits with the standard error of that difference.
+    se = cons.groupby("circuit")["resid_sd"].agg(lambda x: x.std() / len(x) ** 0.5).reindex(by_circuit["circuit"])
+    gaps = by_circuit["resid_sd"].diff().iloc[1:].to_numpy()
+    se_gap = (se.iloc[1:].to_numpy() ** 2 + se.iloc[:-1].to_numpy() ** 2) ** 0.5
+    close = gaps < se_gap
     with st.expander("What this shows", expanded=True):
         st.markdown("\n".join(f"- {n}" for n in [
             "This measures scatter around each stint's fitted trend, not raw spread. Raw lap-time spread also "
             "picks up degradation and fuel burn, which are not driver variability.",
-            f"Circuit averages run from {first.resid_sd:.2f} s at {first.circuit} to {last.resid_sd:.2f} s "
-            f"at {last.circuit}.",
-            f"Only drivers with at least {analysis.MIN_DRIVER_LAPS} fitted laps in a race are counted, so "
+            f"Only drivers with at least {analysis.MIN_STINTS} fitted stints in a race are counted, so "
             f"{thinnest.circuit} rests on {int(thinnest.drivers)} drivers against "
             f"{int(by_circuit['drivers'].max())} at the best-covered circuit.",
-            "The ranking is not stable. A small change to how stints are trimmed before fitting reordered the "
-            "circuits, so treat the order as provisional.",
+            (f"{'The' if close.all() else 'Part of the'} order between circuits is not reliable: {'all ' if close.all() else f'{close.sum()} of '}"
+             f"{len(gaps)} neighbouring pairs are {gaps[close].min():.3f} to {gaps[close].max():.3f} s apart, less "
+             f"than the standard error of their difference ({se_gap[close].min():.3f} to "
+             f"{se_gap[close].max():.3f} s)." if close.any() else
+             f"Every neighbouring pair of circuits is further apart than the standard error of the difference, "
+             f"so the order holds."),
         ]))
 
 # ---------------------------------------------------------------- Stint explorer

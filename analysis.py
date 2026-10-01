@@ -6,6 +6,7 @@ FUEL_KG = 100          # assumed starting fuel load
 SKIP_LAPS = 2          # warm-up laps dropped from the start of each stint
 MIN_FIT_LAPS = 10      # laps a stint needs after the drop to be fitted
 MIN_STINTS = 2         # fitted stints a driver needs in a race to count for consistency
+MIN_COMPOUND_STINTS = 5  # fitted stints a compound needs at a circuit to get a degradation average
 MIN_CIRCUIT_DRIVERS = 10  # drivers a circuit average needs before it is read as more than indicative
 
 def load_data():
@@ -60,7 +61,7 @@ def pace_trend(fct, dim_compound, dim_session, **fuel):
 
     stintscheck = stintscheck.merge(dim_compound[["compound_key", "compound_name"]], on="compound_key", how="left")
     stintscheck = stintscheck.merge(dim_session[["session_key", "event_name"]], on="session_key", how="left")
-    stintscheck = stintscheck[stintscheck['count'] >= 5]
+    stintscheck = stintscheck[stintscheck['count'] >= MIN_COMPOUND_STINTS]
 
     return stintscheck
 
