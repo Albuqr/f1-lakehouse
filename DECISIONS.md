@@ -291,3 +291,69 @@ Considered and rejected: deriving outlines from FastF1 telemetry
 position data, which needs a telemetry download per circuit and is
 outside P1's scope. The f1laps bundle with per-sector paths costs
 USD 21, which the budget rules do not cover for presentation assets.
+
+## Fuel correction
+Lap times are corrected before fitting: corrected = raw + k x fuel_burned,
+with k = 0.03 s/kg and a burn rate of 100 kg divided by the race's lap
+count. Both are parameters of prepare_laps.
+
+Without it every slope at Las Vegas and Qatar was negative, which would
+have said tyres improve with age. Fuel burn was outweighing tyre wear.
+
+Corrected slopes, s/lap:
+
+  SOFT    Sao Paulo     +0.122   (9 stints)
+  MEDIUM  Sao Paulo     +0.088   (34)
+  MEDIUM  Abu Dhabi     +0.086   (23)
+  SOFT    Mexico City   +0.064   (26)
+  MEDIUM  Mexico City   +0.055   (16)
+  HARD    Abu Dhabi     +0.052   (21)
+  HARD    Qatar         +0.016   (13)
+  HARD    Las Vegas     +0.016   (19)
+  MEDIUM  Las Vegas     +0.006   (14)
+  MEDIUM  Qatar         +0.005   (25)
+
+All positive. The ordering is unchanged from the uncorrected version,
+so the correction removed a roughly constant offset of 0.05-0.06 s/lap
+rather than changing the comparison.
+
+Softer degrades faster than harder at every circuit where both appear.
+For scale, Pirelli has described 0.2-0.3 s/lap as very high, and a
+published estimate for Austria 2025 was 0.054-0.060.
+
+Caveat: real fuel loads are not in public timing data. The 100 kg start
+and linear burn are assumptions, and k varies by circuit. The figures
+are sensitive to both.
+
+## Consistency rebuilt: residual scatter, not raw spread
+The original metric was the standard deviation of a driver's lap times
+across a race. That conflates degradation with inconsistency: a driver
+lapping perfectly consistently on degrading tyres still shows a large
+standard deviation.
+
+Replaced with the scatter around each stint's fitted line. stint_slope
+now returns resid_sd, the standard deviation of residuals from the
+fuel-corrected fit, and consistency averages those per driver per race.
+
+The finding reverses. Raw spread by circuit:
+
+  Sao Paulo 0.78, Abu Dhabi 0.84, Mexico City 0.99,
+  Las Vegas 1.02, Qatar 1.30
+
+Residual scatter by circuit:
+
+  Qatar 0.33, Sao Paulo 0.37, Las Vegas 0.38,
+  Abu Dhabi 0.38, Mexico City 0.41
+
+Qatar goes from worst to best, and the spread between circuits falls
+from 66% to 27%. The apparent circuit effect was almost entirely stint
+trend, not driver variability. Once the trend is removed, drivers are
+about equally consistent everywhere.
+
+This matches what the single VER Qatar stint showed: the variance there
+was a discrete step, not degradation, and raw standard deviation could
+not tell the two apart.
+
+Averaging residual SDs across a driver's stints is a mean of standard
+deviations. Defensible while stint lengths are similar, but it is an
+aggregate of aggregates.
