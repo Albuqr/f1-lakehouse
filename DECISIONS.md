@@ -357,3 +357,36 @@ not tell the two apart.
 Averaging residual SDs across a driver's stints is a mean of standard
 deviations. Defensible while stint lengths are similar, but it is an
 aggregate of aggregates.
+
+## Dropping the first two laps of each stint
+stint_slope now sorts by tyre age and drops the first two laps before
+fitting. The 10-lap minimum applies after the drop, so a stint needs 12
+laps to qualify, and n now means laps used in the fit.
+
+Found by inspecting VER at Sao Paulo. His stint 1 produced no green
+laps at all: lap 1 is the start, laps 2-6 ran under yellow and safety
+car, lap 7 was the in-lap and lap 8 the out-lap under VSC. He pitted
+under the safety car. Stint 2 then opened with two laps three seconds
+faster than the rest of the stint, on fresh tyres fitted during the
+caution, and those two laps were dragging the fit: resid_sd 0.592
+against 0.179 and 0.153 for his other two stints.
+
+After the drop, stint 2 reads slope 0.064 (was 0.095) and resid_sd
+0.433. Still three times the other stints, so the fresh-tyre laps were
+part of the problem and not all of it. That stint also restarted in
+traffic, which this data cannot separate out.
+
+This matches documented practice: the TUM/BMW work removes the first
+two laps of a stint, and Cappello and Hoegh attribute early negative
+degradation rates to tyre warm-up.
+
+Effect on the findings. Degradation keeps its ordering, Sao Paulo soft
++0.115 highest and Qatar medium +0.012 lowest. But at Qatar and Las
+Vegas the medium and hard are now within 0.001 s/lap of each other, so
+"softer degrades faster" holds only at the three circuits with
+meaningful degradation, not all five. Sao Paulo soft now rests on 7
+stints, the thinnest group behind any headline number.
+
+Consistency keeps Qatar most consistent at 0.30, but Las Vegas moved
+from near-best to worst at 0.42. A ranking that moves that much on a
+two-lap methodology change is not robust, and the dashboard says so.

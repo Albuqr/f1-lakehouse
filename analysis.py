@@ -33,6 +33,9 @@ def consistency(fct, dim_driver, dim_session):
     return stats
 
 def stint_slope(group):
+
+    group = group.sort_values("tyre_life")
+    group = group.iloc[2:]
     if len(group) < 10:
         return pd.Series({"slope": float("nan"), "r": float("nan"), "stderr": float("nan"), "resid_sd": float("nan"), "n": len(group)})
     result = linregress(group["tyre_life"], group["lap_time_corrected"])
