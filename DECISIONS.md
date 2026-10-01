@@ -239,3 +239,55 @@ Not "degradation". The number is negative at two circuits, and a
 degradation figure that says tyres improve is a lie. It is a pace
 trend per lap of tyre age, and it contains fuel burn and tyre wear
 together.
+
+## Dashboard: Streamlit
+Three options considered.
+
+Looker Studio: free, good dropdown filtering, no hosting. But it
+cannot fit or draw a regression line, blending past two or three
+sources is clumsy, scatter plots are weak, and there is no control
+over layout. The per-stint drill-down would have to precompute fitted
+values as a second series.
+
+Static HTML: total control, deploys to nginx, works untouched for
+years. No interactivity without writing it by hand.
+
+Streamlit: interactivity without JavaScript, computation in pandas so
+the line fitting can run live, already known from the Credit Risk
+system, deploys as Docker on the existing VPS. Cost is a running
+process to maintain rather than a static file.
+
+Chose Streamlit because the view has a drill-down: the reader picks a
+stint and sees its lap times against tyre age with the fitted line.
+That is the part Looker Studio cannot do and static HTML would need
+hand-written JS for.
+
+Looker Studio stays available as a separate 8-10 hour item if a
+specific posting asks for BI-tool evidence, on the same trigger as the
+deferred Power BI port.
+
+## Dashboard scope
+Opens with the findings: pace trend by compound and circuit,
+consistency by circuit. Then a drill-down where the reader picks a
+driver, race and stint and sees the lap times against tyre age with
+the fitted line, labelled as illustration rather than evidence.
+
+Not included: driver photos, which are copyrighted and would be
+republished on a public site. Track maps, which need telemetry
+position data that P1 deliberately does not load, and which do not
+change what the reader learns.
+
+The per-stint view is deliberately second. The findings are about
+patterns across 205 stints, and opening on a single-stint filter
+would invite the reader into exactly the thin slices the thresholds
+exclude.
+
+## Track outlines
+Source: julesr0y/f1-circuits-svg, CC BY 4.0, (c) 2024-2026 Jules Roy.
+Five SVGs in data/tracks/, with the LICENSE file alongside them.
+Attribution in the dashboard footer as the licence requires.
+
+Considered and rejected: deriving outlines from FastF1 telemetry
+position data, which needs a telemetry download per circuit and is
+outside P1's scope. The f1laps bundle with per-sector paths costs
+USD 21, which the budget rules do not cover for presentation assets.
