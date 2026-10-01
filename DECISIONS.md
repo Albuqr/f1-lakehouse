@@ -390,3 +390,35 @@ stints, the thinnest group behind any headline number.
 Consistency keeps Qatar most consistent at 0.30, but Las Vegas moved
 from near-best to worst at 0.42. A ranking that moves that much on a
 two-lap methodology change is not robust, and the dashboard says so.
+
+## Threshold bug: counting the wrong unit
+The consistency threshold required 40 fitted laps per driver per race.
+That excluded most of the Las Vegas field and made the circuit look
+like the least consistent, at 0.42 on three drivers.
+
+Las Vegas is a 50-lap race against 71 at Mexico City. Fitted laps per
+driver there had a median of 39 against a threshold of 40, so half the
+field was cut by one lap. The filter was measuring race length.
+
+The rule: threshold on the unit the metric aggregates over. The
+consistency number averages residual SDs, one per stint, so the unit is
+stints. Laps are one level upstream, and counting them picks up
+variation that has nothing to do with whether the average is
+well-founded.
+
+Checked the other two thresholds against the rule. stint_slope fits a
+line over laps and requires 10 laps: correct. pace_trend averages
+slopes, one per stint, and requires 5 stints: correct. Only consistency
+confused the levels.
+
+Changed to a minimum of 2 fitted stints per driver per race. Las Vegas
+goes from 3 drivers to 12 and from worst to fourth.
+
+Circuit averages now: Qatar 0.30, Sao Paulo 0.34, Abu Dhabi 0.35,
+Las Vegas 0.36, Mexico City 0.38, on 12 to 20 drivers each. The range
+narrows to 27%, which strengthens the original finding: once the stint
+trend is removed, drivers are about equally consistent everywhere.
+
+How it was found: Las Vegas looked wrong, and the fitted-lap counts
+turned out to cluster at exactly one below the cut. When a lot of data
+sits just outside a limit, suspect the limit.

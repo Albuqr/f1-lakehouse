@@ -1,6 +1,13 @@
 import pandas as pd
 from scipy.stats import linregress
 
+FUEL_K = 0.03          # s of lap time per kg of fuel
+FUEL_KG = 100          # assumed starting fuel load
+SKIP_LAPS = 2          # warm-up laps dropped from the start of each stint
+MIN_FIT_LAPS = 10      # laps a stint needs after the drop to be fitted
+MIN_STINTS = 2         # fitted stints a driver needs in a race to count for consistency
+MIN_CIRCUIT_DRIVERS = 10  # drivers a circuit average needs before it is read as more than indicative
+
 def load_data():
     fct = pd.read_parquet("data/fct_lap.parquet")
     dim_driver = pd.read_parquet("data/dim_driver.parquet")
@@ -10,7 +17,7 @@ def load_data():
 
     return fct, dim_driver, dim_session, dim_team, dim_compound
 
-def prepare_laps(fct, k=0.03, fuel_kg=100):
+def prepare_laps(fct, k=FUEL_K, fuel_kg=FUEL_KG):
     pace = fct[fct["is_pace_lap"]].copy()
     pace["lap_time_s"] = pace["lap_time"].dt.total_seconds()
     total_laps = fct.groupby(["session_key"])["lap_number"].max().reset_index()
@@ -25,8 +32,9 @@ def prepare_laps(fct, k=0.03, fuel_kg=100):
 
 def consistency(fct, dim_driver, dim_session):
     slopes = stint_fits(fct)
-    stats = slopes.groupby(["driver_key", "session_key"]).agg({"resid_sd": "mean", "n": "sum"}).reset_index()
-    stats = stats[stats["n"] >= 40]
+    stats = slopes.groupby(["driver_key", "session_key"]).agg({"resid_sd": "mean", "n": "sum", "slope": "count"}).reset_index()
+    stats = stats.rename(columns={"slope": "stints"})
+    stats = stats[stats["stints"] >= MIN_STINTS]
 
     stats = stats.merge(dim_driver[["driver_key", "driver_code"]], on="driver_key", how="left")
     stats = stats.merge(dim_session[["session_key", "event_name"]], on="session_key", how="left")
@@ -35,17 +43,17 @@ def consistency(fct, dim_driver, dim_session):
 def stint_slope(group):
 
     group = group.sort_values("tyre_life")
-    group = group.iloc[2:]
-    if len(group) < 10:
-        return pd.Series({"slope": float("nan"), "r": float("nan"), "stderr": float("nan"), "resid_sd": float("nan"), "n": len(group)})
+    group = group.iloc[SKIP_LAPS:]
+    if len(group) < MIN_FIT_LAPS:
+        return pd.Series({"slope": float("nan"), "intercept": float("nan"), "r": float("nan"), "stderr": float("nan"), "resid_sd": float("nan"), "n": len(group)})
     result = linregress(group["tyre_life"], group["lap_time_corrected"])
     predicted = result.intercept + result.slope * group["tyre_life"]
     residuals = group["lap_time_corrected"] - predicted
-    return pd.Series({"slope": result.slope, "r": result.rvalue, "stderr": result.stderr, "resid_sd": residuals.std(), "n": len(group)})
+    return pd.Series({"slope": result.slope, "intercept": result.intercept, "r": result.rvalue, "stderr": result.stderr, "resid_sd": residuals.std(), "n": len(group)})
 
-def pace_trend(fct, dim_compound, dim_session):
+def pace_trend(fct, dim_compound, dim_session, **fuel):
 
-    slopes = stint_fits(fct)
+    slopes = stint_fits(fct, **fuel)
 
     stintscheck = slopes.groupby(["compound_key", "session_key"])["slope"].agg(
         ["mean", "count"]).reset_index().sort_values("mean")
@@ -62,8 +70,8 @@ def stint_laps(fct, driver_key, session_key, stint):
 
     return pace
 
-def stint_fits(fct):
-    pace = prepare_laps(fct)
+def stint_fits(fct, **fuel):
+    pace = prepare_laps(fct, **fuel)
     slopes = pace.groupby(["driver_key", "session_key", "stint"]).apply(stint_slope, include_groups=False).reset_index()
     stint_compound = pace.groupby(["driver_key", "session_key", "stint"])["compound_key"].first().reset_index()
     slopes = slopes.merge(stint_compound, on=["driver_key", "session_key", "stint"], how="left")
