@@ -134,3 +134,4 @@ webencodings==0.6.1
 websocket-client==1.9.2
 websockets==16.1.1
 widgetsnbextension==4.0.16
+plotly==7.1.0
