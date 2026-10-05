@@ -1,4 +1,5 @@
 import importlib
+import unicodedata
 from functools import partial
 from pathlib import Path
 
@@ -92,6 +93,11 @@ def fmt_time(s):
 
 def short(event):
     return event.replace(" Grand Prix", "")
+
+
+def slug(name):
+    # Filenames stay ASCII, so "São Paulo" -> "sao-paulo": decompose accents, then drop the combining marks.
+    return unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode().lower().replace(" ", "-")
 
 
 def join(items):
@@ -517,7 +523,7 @@ with stint_tab:
     )
     name.subheader(race["event_name"])
     name.caption(f"{race['location']} · Round {race['round_number']} · {race['event_date']:%d %b %Y}")
-    svg = Path("data/tracks") / f"{race['location'].lower().replace(' ', '-')}.svg"
+    svg = Path("data/tracks") / f"{slug(race['location'])}.svg"
     if svg.exists():
         track.image(svg.read_text(encoding="utf-8"), width=340)
 
