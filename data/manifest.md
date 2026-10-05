@@ -8,7 +8,7 @@ against them.
 | | |
 |---|---|
 | Retrieved | 2026-09-23, 11:24–11:25 (UTC−03:00) |
-| Built | 2026-09-30, 10:51 (UTC−03:00) |
+| Built | 2026-09-30, 10:51 (UTC−03:00); `dim_driver` rebuilt 2026-10-05, 10:31 |
 | Source | F1 live timing, through FastF1 |
 | fastf1 | 3.8.3 |
 | pandas | 2.3.3 |
@@ -50,12 +50,12 @@ loaded.
 
 ```
 5bc50d62ea7f71bcac2f76cc46f60a7870a0a8fbc10a51c21657f5b79078cb39 *data/dim_compound.parquet
-f79537e54a915bd7a8c673353b5317e067f3e92fda958111654fcb8c1bb73381 *data/dim_driver.parquet
+ca6d5e1632f5b0e88080ccac326e409b09e6f6150809f932e78a26189e7b8808 *data/dim_driver.parquet
 73833c2c0f610225f84a8b07e5276cce8546063e3a633411048828c3b63f6ead *data/dim_session.parquet
 3a2d9f3227221e1e6c40a6a9d665ad750191dc6f1ef0de6b1e61cd9e1e6584ae *data/dim_team.parquet
 ab5b628bf28e74c76127abe5b1f78dd8e75b04f8d2c9a12785da362f89e5904f *data/fct_lap.parquet
 7a1b5585d0a5dcc7f7541eb37274ff846147ecffca2410289ecc7ec675550fe6 *data/dim_compound.csv
-6fe38fb4aa72e7bf0dabfb30ee95d7f87941debc47141757480747a2ec58a47f *data/dim_driver.csv
+d294d4651e44b98eb8092f1fa5478da56a4f07aba5ce0e54b2893602756f59d0 *data/dim_driver.csv
 60e066535316fbe128f7a5cdf5fc4da9caeed9b2e0e713e64f4739388bb4c291 *data/dim_session.csv
 35be3d692c80c562540c4c0cff28dd063e0add403e45b43498e0bf56664e13d1 *data/dim_team.csv
 ca22d8782792d4bdb825177514fd0742f81242388fbeb58419cf58a4773ee375 *data/fct_lap.csv

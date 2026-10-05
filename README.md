@@ -251,9 +251,9 @@ streamlit run dashboard.py
 ```
 
 The dashboard reads `data/*.parquet` and `analysis.py`. It reloads both when
-they change, so edits show up on the next rerun without restarting the server. Team colours come
-from FastF1 and use `ff1_cache/`. Without a cache or a network connection the
-driver card and the consistency charts fall back to grey.
+they change, so edits show up on the next rerun without restarting the server. Driver colours, line
+styles and markers are resolved from FastF1 at build time and stored in `dim_driver`, so the
+dashboard needs neither FastF1 nor `ff1_cache/`.
 
 ## Credits
 

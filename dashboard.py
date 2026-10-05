@@ -3,8 +3,6 @@ import unicodedata
 from functools import partial
 from pathlib import Path
 
-import fastf1
-import fastf1.plotting
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -61,31 +59,6 @@ def derived(version):
     )
 
 
-@st.cache_data
-def team_colour(team, year, rnd):
-    try:
-        fastf1.Cache.enable_cache("ff1_cache")
-        return fastf1.plotting.get_team_color(team, fastf1.get_session(year, rnd, "R"), colormap="official")
-    except Exception:
-        return NEUTRAL  # no cache and no network: card falls back to grey
-
-
-@st.cache_data
-def driver_styles(year, rnd, codes):
-    # Team colour, plus the line style and marker fastf1 uses to tell teammates apart.
-    styles = {}
-    for code in codes:
-        try:
-            fastf1.Cache.enable_cache("ff1_cache")
-            s = fastf1.plotting.get_driver_style(code, ["color", "linestyle", "marker"], fastf1.get_session(year, rnd, "R"),
-                                                 colormap="official")
-            styles[code] = dict(color=s["color"], dash="dash" if s["linestyle"] == "dashed" else "solid",
-                                symbol="circle" if s["marker"] == "o" else "x")
-        except Exception:
-            styles[code] = dict(color=NEUTRAL, dash="solid", symbol="circle")  # no cache and no network
-    return styles
-
-
 def fmt_time(s):
     m, sec = divmod(round(s, 1), 60)
     return f"{int(m)}:{sec:04.1f}"
@@ -137,6 +110,9 @@ sessions = dim_session.sort_values("round_number")
 race_order = [short(e) for e in sessions["event_name"]]
 compound_name = dict(zip(dim_compound["compound_key"], dim_compound["compound_name"]))
 driver_code = dict(zip(dim_driver["driver_key"], dim_driver["driver_code"]))
+# Team colour, plus the line style and marker fastf1 uses to tell teammates apart, resolved at build time.
+style = {r.driver_code: dict(color=r.colour, dash="dash" if r.line_style == "dashed" else "solid",
+                             symbol="circle" if r.marker == "o" else "x") for r in dim_driver.itertuples()}
 
 st.session_state.setdefault("driver", int(dim_driver.loc[dim_driver["driver_code"] == "VER", "driver_key"].iat[0]))
 st.session_state.setdefault("race", int(sessions.loc[sessions["event_name"].str.contains("Qatar"), "session_key"].iat[0]))
@@ -342,11 +318,6 @@ with cons_tab:
         "across all races, then the circuit averages they add up to."
     )
     cons = cons.assign(circuit=cons["event_name"].map(short))
-    race_info = sessions.assign(circuit=sessions["event_name"].map(short)).set_index("circuit")
-
-    def styles_at(circuit, codes):
-        r = race_info.loc[circuit]
-        return driver_styles(int(r["year"]), int(r["round_number"]), tuple(codes))
 
     def roster(g):
         g = g.sort_values("resid_sd")
@@ -365,7 +336,6 @@ with cons_tab:
     circuit = st.segmented_control("Race", [c for c in race_order if c in set(cons["circuit"])],
                                    key="cons_race", required=True)
     drivers = cons[cons["circuit"] == circuit].sort_values("resid_sd")
-    style = styles_at(circuit, drivers["driver_code"])
     avg = drivers["resid_sd"].mean()
     fig = go.Figure(go.Bar(
         x=drivers["driver_code"], y=drivers["resid_sd"],
@@ -391,8 +361,6 @@ with cons_tab:
     # Averages over different numbers of races aren't comparable: rank full coverage, then group the rest.
     order = pd.concat([mean[full].sort_values(),
                        pd.DataFrame({"r": -races, "m": mean})[~full].sort_values(["r", "m"])["m"]]).index
-    latest = cons.sort_values("session_key").groupby("driver_code")["circuit"].last()  # each driver's latest team
-    style = {c: styles_at(latest[c], [c])[c] for c in order}
     field = by_circuit.set_index("circuit")["resid_sd"].reindex(race_order)
     abbr = [c[:3].upper() for c in race_order]
     cols = len(race_order)
@@ -510,7 +478,7 @@ with stint_tab:
     laps_here = fct[(fct["driver_key"] == driver_key) & (fct["session_key"] == session_key)]
     team_key = (laps_here if len(laps_here) else fct[fct["driver_key"] == driver_key])["team_key"].iat[-1]
     team = dim_team.set_index("team_key").loc[team_key, "team_name"]
-    colour = team_colour(team, int(race["year"]), int(race["round_number"]))
+    colour = driver.colour
     r, g, b = (int(colour[i:i + 2], 16) for i in (1, 3, 5))
     ink = "#111111" if 0.299 * r + 0.587 * g + 0.114 * b > 150 else "#FFFFFF"
 
