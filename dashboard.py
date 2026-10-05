@@ -81,11 +81,15 @@ def num(v, f):
 
 
 def stint_columns(df):
+    def fit(col, f):  # stints too short to fit say so, rather than showing a bare dash
+        return df[col].map(lambda v: format(v, f)).where(df["slope"].notna(), "not fitted")
+
     return {
-        "Laps": df["n"].astype(int),
-        "Slope (s/lap)": df["slope"].map(lambda v: num(v, "+.3f")),
-        "Std error": df["stderr"].map(lambda v: num(v, ".3f")),
-        "Residual SD (s)": df["resid_sd"].map(lambda v: num(v, ".3f")),
+        "Stint laps": df["laps"],
+        "Pace laps after trim": df["n"].astype(int),
+        "Slope (s/lap)": fit("slope", "+.3f"),
+        "Std error": fit("stderr", ".3f"),
+        "Residual SD (s)": fit("resid_sd", ".3f"),
     }
 
 
@@ -104,6 +108,8 @@ def open_stint(stints, key):
 v = version()
 fct, dim_driver, dim_session, dim_team, dim_compound = load(v)
 pace, cons, fits, raw_pace = derived(v)
+keys = ["driver_key", "session_key", "stint"]
+fits = fits.merge(fct.groupby(keys).size().rename("laps").reset_index(), on=keys, how="left")  # untrimmed length
 sessions = dim_session.sort_values("round_number")
 race_order = [short(e) for e in sessions["event_name"]]
 compound_name = dict(zip(dim_compound["compound_key"], dim_compound["compound_name"]))
@@ -253,7 +259,7 @@ with deg_tab:
         table = behind.assign(Driver=behind["driver_key"].map(driver_code), Stint=behind["stint"], **stint_columns(behind))
         key = f"deg_stints_{st.session_state.jumps}"
         st.dataframe(
-            table[["Driver", "Stint", "Laps", "Slope (s/lap)", "Std error", "Residual SD (s)"]],
+            table[["Driver", "Stint", "Stint laps", "Pace laps after trim", "Slope (s/lap)", "Std error", "Residual SD (s)"]],
             hide_index=True, key=key, on_select=partial(open_stint, behind, key), selection_mode="single-row",
         )
         st.caption("Select a row to open that stint in the stint explorer.")
@@ -547,12 +553,13 @@ with stint_tab:
         circuit_avg = sel.merge(pace, on=["compound_key", "session_key"], how="left")["mean"]
         table = sel.assign(Stint=sel["stint"], Compound=sel["compound_key"].map(compound_name), **stint_columns(sel),
                            **{"Circuit average": circuit_avg.map(lambda v: num(v, "+.3f")).values})
-        st.dataframe(table[["Stint", "Compound", "Laps", "Slope (s/lap)", "Circuit average", "Std error",
-                            "Residual SD (s)"]], hide_index=True)
+        st.dataframe(table[["Stint", "Compound", "Stint laps", "Pace laps after trim", "Slope (s/lap)",
+                            "Circuit average", "Std error", "Residual SD (s)"]], hide_index=True)
         st.caption(
             "Illustration, not evidence. One driver's stints cannot establish the findings in the Degradation and "
-            f"Consistency tabs. Fits skip each stint's first {analysis.SKIP_LAPS} laps, so stints under "
-            f"{analysis.SKIP_LAPS + analysis.MIN_FIT_LAPS} laps are shown without one. Circuit average is that "
+            f"Consistency tabs. Pace laps after trim drops in- and out-laps, laps not under green and each "
+            f"stint's first {analysis.SKIP_LAPS} laps; stints with fewer than {analysis.MIN_FIT_LAPS} left are not "
+            "fitted. Circuit average is that "
             "compound's mean slope at this race; single stints often sit well either side of it."
         )
 
