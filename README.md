@@ -42,6 +42,18 @@ analysis reads. CSV is kept for Looker Studio, which cannot read Parquet. CSV
 loses types on a round trip: `track_status` comes back as a number, and the
 exclusion rule below then still runs but no longer means the same thing.
 
+The build also runs the analysis and writes its results to `data/`, as Parquet
+only:
+
+| Table | One row per | Holds |
+|---|---|---|
+| `stint_fits` | driver × race × stint | slope, intercept, r, standard error, residual scatter, laps used (`n`), compound |
+| `pace_trend` | compound × circuit | mean stint trend and stint count, fuel-corrected |
+| `pace_trend_raw` | compound × circuit | the same without fuel correction, for comparison |
+| `consistency` | driver × race | mean residual scatter over fitted stints |
+
+The dashboard reads these instead of fitting on load.
+
 ## The three questions
 
 The dashboard has one tab per question:
@@ -142,8 +154,9 @@ correction it combined fuel burn and tyre wear and was negative at two circuits.
 
 ## Findings
 
-As read from the current data. The dashboard computes all of these at render
-time, so they follow the data if it changes.
+As read from the current data. The figures come from the tables the build
+writes, and the dashboard words its notes from them at render time, so they
+follow the data when it is rebuilt.
 
 ### Degradation
 
@@ -223,7 +236,7 @@ time, so they follow the data if it changes.
 
 ## Running it
 
-Built and run with Python 3.14.
+Built and run with Python 3.14. The Docker image uses Python 3.12.
 
 ```
 python -m venv .venv
@@ -231,10 +244,15 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+`requirements.txt` covers the build, the notebooks and the dashboard.
+`requirements-app.txt` is the dashboard alone (pandas, pyarrow, scipy, plotly,
+Streamlit), with no FastF1 or Jupyter.
+
 ### Build the tables
 
-`build_star.ipynb` loads the five races with FastF1, builds the star schema and
-writes it to `data/` as CSV and Parquet. Run it top to bottom in Jupyter, or:
+`build_star.ipynb` loads the five races with FastF1, builds the star schema,
+writes it to `data/` as CSV and Parquet, then runs `analysis.py` over it and
+writes the four result tables. Run it top to bottom in Jupyter, or:
 
 ```
 jupyter nbconvert --to notebook --execute --inplace build_star.ipynb
@@ -242,7 +260,9 @@ jupyter nbconvert --to notebook --execute --inplace build_star.ipynb
 
 The first run downloads the race data from the F1 timing service into
 `ff1_cache/` (not committed); later runs read from the cache. The built tables
-are committed in `data/`, so the build only needs to run again if it changes.
+are committed in `data/`, so the build only needs to run again if it or
+`analysis.py` changes. [data/manifest.md](data/manifest.md) records what the
+tables were built from, with row counts and checksums to check a rebuild against.
 
 ### Run the dashboard
 
@@ -250,15 +270,33 @@ are committed in `data/`, so the build only needs to run again if it changes.
 streamlit run dashboard.py
 ```
 
-The dashboard reads `data/*.parquet` and `analysis.py`. It reloads both when
-they change, so edits show up on the next rerun without restarting the server. Driver colours, line
-styles and markers are resolved from FastF1 at build time and stored in `dim_driver`, so the
-dashboard needs neither FastF1 nor `ff1_cache/`.
+The dashboard reads `data/*.parquet` and `analysis.py`, and picks up changes to
+either on the next rerun without restarting the server. The fits themselves come
+from the Parquet files, so a change to the fitting logic in `analysis.py` only
+shows after the build is run again. The stint explorer's lap points and the
+thresholds quoted in captions are read from `analysis.py` directly.
+
+Driver colours, line styles and markers are resolved from FastF1 at build time
+and stored in `dim_driver`, so the dashboard needs neither FastF1 nor
+`ff1_cache/`.
+
+### Run in Docker
+
+```
+docker build -t f1-lakehouse .
+docker run -p 8501:8501 f1-lakehouse
+```
+
+Then open http://localhost:8501. The image holds `dashboard.py`, `analysis.py`,
+`data/` and `.streamlit/`, and installs `requirements-app.txt`. It does not run
+the build: rebuild `data/` first if it is out of date.
 
 ## Credits
 
 Circuit outlines in `data/tracks/` are from
 [julesr0y/f1-circuits-svg](https://github.com/julesr0y/f1-circuits-svg),
-© 2024–2026 Jules Roy, licensed CC BY 4.0. The licence is alongside them in
+© 2024–2026 Jules Roy, licensed CC BY 4.0. Each file is named after the
+session's `location`, lower-cased, hyphenated and with accents stripped
+(`sao-paulo.svg`), so names stay ASCII. The licence is alongside them in
 `data/tracks/LICENSE.txt`, and the dashboard footer carries the attribution.
 Timing data is accessed through FastF1.
