@@ -1,0 +1,7 @@
+.venv/
+ff1_cache/
+.jupyter_runtime/
+.git/
+__pycache__/
+*.ipynb
+exploration/
