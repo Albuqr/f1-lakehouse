@@ -31,8 +31,8 @@ def prepare_laps(fct, k=FUEL_K, fuel_kg=FUEL_KG):
 
     return pace
 
-def consistency(fct, dim_driver, dim_session):
-    slopes = stint_fits(fct)
+def consistency(slopes, dim_driver, dim_session):
+
     stats = slopes.groupby(["driver_key", "session_key"]).agg({"resid_sd": "mean", "n": "sum", "slope": "count"}).reset_index()
     stats = stats.rename(columns={"slope": "stints"})
     stats = stats[stats["stints"] >= MIN_STINTS]
@@ -52,9 +52,7 @@ def stint_slope(group):
     residuals = group["lap_time_corrected"] - predicted
     return pd.Series({"slope": result.slope, "intercept": result.intercept, "r": result.rvalue, "stderr": result.stderr, "resid_sd": residuals.std(), "n": len(group)})
 
-def pace_trend(fct, dim_compound, dim_session, **fuel):
-
-    slopes = stint_fits(fct, **fuel)
+def pace_trend(slopes, dim_compound, dim_session):
 
     stintscheck = slopes.groupby(["compound_key", "session_key"])["slope"].agg(
         ["mean", "count"]).reset_index().sort_values("mean")

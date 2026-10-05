@@ -49,13 +49,14 @@ def load(version):
 
 @st.cache_data
 def derived(version):
-    # The module's fits take ~1 s each; cache so reruns stay instant.
     fct, dim_driver, dim_session, _, dim_compound = load(version)
+    slopes = analysis.stint_fits(fct)
+    slopes_raw = analysis.stint_fits(fct, k=0)
     return (
-        analysis.pace_trend(fct, dim_compound, dim_session),
-        analysis.consistency(fct, dim_driver, dim_session),
-        analysis.stint_fits(fct),
-        analysis.pace_trend(fct, dim_compound, dim_session, k=0),  # uncorrected, for the fuel note
+        analysis.pace_trend(slopes, dim_compound, dim_session),
+        analysis.consistency(slopes, dim_driver, dim_session),
+        slopes,
+        analysis.pace_trend(slopes_raw, dim_compound, dim_session),
     )
 
 
