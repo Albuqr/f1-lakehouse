@@ -1,0 +1,12 @@
+{
+  "$comentario": "E-mail em uma tela, senha na seguinte, depois código do autenticador (TOTP). Credenciais: TESTKIT_ADMIN_USERNAME/_PASSWORD/_TOTP_SECRET.",
+  "auth": {
+    "strategy": "form-totp",
+    "loginPath": "/sign-in",
+    "form": { "twoStep": true, "nextSelector": "button:has-text('Continuar')" },
+    "mfa": { "codeSelector": "input[autocomplete=one-time-code]", "submitSelector": "button:has-text('Verificar')" },
+    "success": { "selector": "[data-testid=user-menu]" },
+    "logout": { "selector": "[data-testid=logout]" },
+    "roles": [{ "name": "admin", "envPrefix": "TESTKIT_ADMIN", "homePath": "/admin" }]
+  }
+}

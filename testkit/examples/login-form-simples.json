@@ -1,0 +1,13 @@
+{
+  "$comentario": "Usuário e senha em uma tela.",
+  "web": { "baseUrl": "http://localhost:3000", "startCommand": "npm run dev" },
+  "auth": {
+    "strategy": "form",
+    "loginPath": "/login",
+    "success": { "urlPattern": "/dashboard" },
+    "failure": { "selector": ".error, [role=alert]" },
+    "logout": { "path": "/logout" },
+    "roles": [{ "name": "user", "envPrefix": "TESTKIT_USER", "homePath": "/dashboard" }],
+    "rules": [{ "path": "/dashboard", "allow": ["user"], "deny": ["anonymous"] }]
+  }
+}

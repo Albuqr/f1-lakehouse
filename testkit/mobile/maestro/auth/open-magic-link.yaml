@@ -1,0 +1,11 @@
+# Segunda etapa do link mágico: abre o link recebido (deep link / universal link) no app.
+appId: ${APP_ID}
+name: Abrir link mágico
+---
+- openLink:
+    link: ${MAGIC_LINK}
+    autoVerify: true
+- extendedWaitUntil:
+    visible:
+      id: ${HOME_SCREEN_ID}
+    timeout: 30000

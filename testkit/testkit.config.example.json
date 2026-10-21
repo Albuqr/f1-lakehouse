@@ -1,0 +1,74 @@
+{
+  "$comentario": "Copie para a raiz do projeto como testkit.config.json. Só declare o que difere de testkit/defaults.json. Chaves iniciadas por $ são ignoradas. Valores aceitam ${VARIAVEL} e ${VARIAVEL:-padrão}.",
+
+  "project": { "name": "Meu projeto" },
+
+  "web": {
+    "$comentario": "baseUrl local + startCommand = o testkit sobe o app. Para testar um ambiente publicado, defina TESTKIT_BASE_URL.",
+    "baseUrl": "${TESTKIT_BASE_URL:-http://localhost:3000}",
+    "setupCommand": "npm ci && npm run build",
+    "startCommand": "npm start",
+    "readyPath": "/",
+    "browsers": ["chromium", "firefox", "webkit"],
+    "publicPages": ["/", "/sobre", "/login"],
+    "ignoreConsoleErrors": ["favicon\\.ico"],
+    "performance": {
+      "budgets": { "lcpMs": 2500, "ttfbMs": 800, "jsTransferKb": 800 },
+      "lighthouse": { "minScores": { "performance": 0.8, "accessibility": 0.95, "best-practices": 0.9, "seo": 0.8 } }
+    }
+  },
+
+  "auth": {
+    "$comentario": "Estratégias: none | form | form-totp | form-email-code | magic-link | oauth | steps | api | bearer | cookie | basic | storage-state. Cada papel pode sobrescrever com 'strategy'. Exemplos completos em testkit/examples/.",
+    "strategy": "form-totp",
+    "loginPath": "/login",
+    "success": { "urlPattern": "/(dashboard|painel)", "selector": "[data-testid=user-menu]" },
+    "failure": { "selector": "[role=alert]" },
+    "form": {
+      "usernameSelector": "input[name=email]",
+      "passwordSelector": "input[name=password]",
+      "submitSelector": "button[type=submit]"
+    },
+    "mfa": { "codeSelector": "input[autocomplete=one-time-code]", "submitSelector": "button[type=submit]" },
+    "logout": { "selector": "[data-testid=logout]" },
+
+    "roles": [
+      { "name": "admin", "envPrefix": "TESTKIT_ADMIN", "homePath": "/admin" },
+      { "name": "user", "envPrefix": "TESTKIT_USER", "homePath": "/dashboard", "pages": ["/perfil"] },
+      { "name": "integration", "envPrefix": "TESTKIT_API", "strategy": "bearer" }
+    ],
+
+    "$comentario_rules": "Matriz de permissões: cada papel em allow deve acessar; cada papel em deny deve ser bloqueado (401/403/404, login ou redirecionamento). 'anonymous' = visitante.",
+    "rules": [
+      { "path": "/admin", "allow": ["admin"], "deny": ["user", "anonymous"], "expectSelector": "h1" },
+      { "path": "/dashboard", "allow": ["admin", "user"], "deny": ["anonymous"] }
+    ],
+    "apiRules": [
+      { "method": "GET", "path": "/api/admin/users", "allow": ["admin"], "deny": ["user", "anonymous"] },
+      { "method": "GET", "path": "/api/me", "allow": ["admin", "user"], "deny": ["anonymous"] }
+    ]
+  },
+
+  "api": {
+    "$comentario": "Schemathesis gera milhares de requisições a partir do OpenAPI. Use só em ambiente de teste.",
+    "openapi": "/openapi.json",
+    "role": "integration",
+    "excludeMethods": ["DELETE"]
+  },
+
+  "python": { "coverageMin": 80, "sourcePaths": ["src", "tests"] },
+
+  "security": { "auditLevel": "high" },
+
+  "mobile": {
+    "$comentario": "Para Expo/React Native/Flutter/Android/iOS. Fluxos Maestro usam os ids de mobile.extraEnv (testID no RN).",
+    "appId": "com.empresa.app",
+    "platforms": ["android"],
+    "android": {
+      "buildCommand": "npx expo prebuild --platform android --no-install && cd android && ./gradlew assembleRelease",
+      "apkPath": "android/app/build/outputs/apk/release/app-release.apk"
+    },
+    "role": "user",
+    "extraEnv": { "HOME_SCREEN_ID": "tela-inicial" }
+  }
+}

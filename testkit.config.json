@@ -1,0 +1,13 @@
+{
+  "project": { "name": "f1-lakehouse" },
+  "auth": { "strategy": "none", "roles": [] },
+  "links": { "checkExternal": false },
+  "python": {
+    "commands": {
+      "lint": "ruff check --select E9,F63,F7,F82 {src}",
+      "format": null,
+      "typecheck": null,
+      "test": null
+    }
+  }
+}

@@ -1,0 +1,18 @@
+# Segunda etapa do código por e-mail: o app continua aberto na tela do código.
+appId: ${APP_ID}
+name: Digitar código recebido por e-mail
+---
+- tapOn:
+    id: ${MFA_CODE_FIELD_ID}
+- inputText: ${EMAIL_CODE}
+- runFlow:
+    when:
+      visible:
+        id: ${MFA_SUBMIT_BUTTON_ID}
+    commands:
+      - tapOn:
+          id: ${MFA_SUBMIT_BUTTON_ID}
+- extendedWaitUntil:
+    visible:
+      id: ${HOME_SCREEN_ID}
+    timeout: 30000

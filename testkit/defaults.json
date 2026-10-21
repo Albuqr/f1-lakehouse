@@ -1,0 +1,359 @@
+{
+  "project": {
+    "name": "Projeto",
+    "stacks": "auto"
+  },
+  "reportsDir": "testkit-reports",
+  "node": {
+    "enabled": "auto",
+    "workingDirectory": ".",
+    "packageManager": "auto",
+    "commands": {
+      "install": "auto",
+      "lint": "auto",
+      "format": "auto",
+      "typecheck": "auto",
+      "test": "auto",
+      "build": "auto"
+    }
+  },
+  "python": {
+    "enabled": "auto",
+    "workingDirectory": ".",
+    "sourcePaths": [
+      "."
+    ],
+    "excludePaths": [
+      ".venv",
+      "venv",
+      "node_modules",
+      "build",
+      "dist",
+      "migrations",
+      "testkit",
+      ".tox"
+    ],
+    "coverageMin": 80,
+    "commands": {
+      "install": "auto",
+      "lint": "ruff check {src}",
+      "format": "ruff format --check {src}",
+      "typecheck": "mypy {src}",
+      "test": "python -m pytest --ignore=testkit --junitxml={reports}/python-junit.xml --cov --cov-report=xml:{reports}/python-coverage.xml --cov-report=term --cov-fail-under={coverageMin}",
+      "sast": "bandit -q -r {src} -x {exclude} -ll",
+      "audit": "auto"
+    }
+  },
+  "web": {
+    "enabled": "auto",
+    "baseUrl": "${TESTKIT_BASE_URL:-http://localhost:3000}",
+    "setupCommand": "",
+    "startCommand": "",
+    "readyPath": "/",
+    "startTimeoutSeconds": 180,
+    "browsers": [
+      "chromium",
+      "firefox",
+      "webkit"
+    ],
+    "retries": 1,
+    "workers": 2,
+    "navigationTimeoutMs": 30000,
+    "publicPages": [
+      "/"
+    ],
+    "ignoreConsoleErrors": [
+      "favicon\\.ico",
+      "Download the React DevTools"
+    ],
+    "ignoreRequestFailures": [
+      "google-analytics",
+      "googletagmanager",
+      "hotjar",
+      "sentry"
+    ],
+    "checks": {
+      "smoke": true,
+      "auth": true,
+      "authorization": true,
+      "accessibility": true,
+      "security": true,
+      "responsive": true,
+      "performance": true,
+      "crawl": true
+    },
+    "accessibility": {
+      "tags": [
+        "wcag2a",
+        "wcag2aa",
+        "wcag21a",
+        "wcag21aa",
+        "wcag22aa",
+        "best-practice"
+      ],
+      "failOnImpacts": [
+        "critical",
+        "serious"
+      ],
+      "disableRules": [],
+      "exclude": []
+    },
+    "security": {
+      "requiredHeaders": [
+        "x-content-type-options",
+        "referrer-policy",
+        "content-security-policy"
+      ],
+      "requireFrameProtection": true,
+      "requireHstsOnHttps": true,
+      "forbiddenHeaders": [
+        "x-powered-by"
+      ],
+      "sensitivePaths": [
+        "/.env",
+        "/.env.local",
+        "/.git/config",
+        "/.git/HEAD",
+        "/.DS_Store",
+        "/config.json",
+        "/.npmrc",
+        "/docker-compose.yml",
+        "/server.js.map"
+      ],
+      "checkCors": true,
+      "checkSessionCookies": true,
+      "checkMixedContent": true
+    },
+    "responsive": {
+      "viewports": [
+        {
+          "name": "celular",
+          "width": 375,
+          "height": 812
+        },
+        {
+          "name": "tablet",
+          "width": 768,
+          "height": 1024
+        },
+        {
+          "name": "desktop",
+          "width": 1440,
+          "height": 900
+        }
+      ],
+      "minTapTargetPx": 24
+    },
+    "performance": {
+      "budgets": {
+        "ttfbMs": 800,
+        "domContentLoadedMs": 3000,
+        "loadMs": 6000,
+        "lcpMs": 2500,
+        "cls": 0.1,
+        "totalTransferKb": 3000,
+        "jsTransferKb": 1000
+      },
+      "lighthouse": {
+        "enabled": true,
+        "runs": 3,
+        "minScores": {
+          "performance": 0.8,
+          "accessibility": 0.9,
+          "best-practices": 0.9,
+          "seo": 0.8
+        }
+      }
+    },
+    "crawl": {
+      "maxPages": 60,
+      "checkExternalLinks": false,
+      "excludePatterns": [
+        "logout",
+        "sign-out",
+        "signout",
+        "sair",
+        "delete",
+        "excluir",
+        "mailto:",
+        "tel:",
+        "javascript:"
+      ]
+    }
+  },
+  "auth": {
+    "strategy": "none",
+    "loginPath": "/login",
+    "success": {
+      "urlPattern": "",
+      "selector": "",
+      "timeoutMs": 30000
+    },
+    "failure": {
+      "selector": "",
+      "checkInvalidLogin": true
+    },
+    "redirectToLoginPattern": "login|sign-in|signin|entrar|auth",
+    "form": {
+      "usernameSelector": "input[type=email], input[name=email], input[name=username], input[autocomplete=username]",
+      "passwordSelector": "input[type=password]",
+      "submitSelector": "button[type=submit]",
+      "twoStep": false,
+      "nextSelector": "button[type=submit]"
+    },
+    "mfa": {
+      "codeSelector": "input[autocomplete=one-time-code], input[name=code], input[name=otp], input[inputmode=numeric]",
+      "submitSelector": "button[type=submit]"
+    },
+    "magicLink": {
+      "emailSelector": "input[type=email]",
+      "submitSelector": "button[type=submit]",
+      "mode": "link"
+    },
+    "oauth": {
+      "providerButtonSelector": "",
+      "providerUsernameSelector": "input[type=email], input[name=username], input[name=login]",
+      "providerNextSelector": "",
+      "providerPasswordSelector": "input[type=password]",
+      "providerSubmitSelector": "button[type=submit], input[type=submit]",
+      "consentSelector": "",
+      "providerHostPattern": ""
+    },
+    "api": {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "contentType": "json",
+      "body": {
+        "email": "{{username}}",
+        "password": "{{password}}"
+      },
+      "tokenJsonPath": "",
+      "tokenStorage": "cookies",
+      "storageKey": "token",
+      "headerName": "Authorization",
+      "headerPrefix": "Bearer ",
+      "mfa": null
+    },
+    "bearer": {
+      "storage": "header",
+      "headerName": "Authorization",
+      "headerPrefix": "Bearer ",
+      "storageKey": "token"
+    },
+    "cookie": {
+      "name": "session",
+      "domain": "",
+      "path": "/",
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    "steps": [],
+    "inbox": {
+      "type": "mailpit",
+      "url": "${TESTKIT_INBOX_URL:-http://localhost:8025}",
+      "headers": {},
+      "linkPattern": "https?://[^\\s\"'<>]+",
+      "codePattern": "\\b\\d{6}\\b",
+      "timeoutMs": 60000
+    },
+    "logout": {
+      "path": "",
+      "selector": "",
+      "method": "ui"
+    },
+    "roles": [
+      {
+        "name": "user",
+        "envPrefix": "TESTKIT_USER",
+        "homePath": "/"
+      }
+    ],
+    "rules": [],
+    "apiRules": []
+  },
+  "api": {
+    "enabled": "auto",
+    "openapi": "",
+    "baseUrl": "",
+    "role": "",
+    "maxExamples": 50,
+    "excludeMethods": [
+      "DELETE"
+    ],
+    "includePathRegex": "",
+    "excludePathRegex": "",
+    "extraArgs": ""
+  },
+  "security": {
+    "secrets": true,
+    "sast": true,
+    "dependencies": true,
+    "auditLevel": "high",
+    "semgrepConfig": "p/default",
+    "allowlistFile": ""
+  },
+  "links": {
+    "enabled": true,
+    "globs": [
+      "**/*.md"
+    ],
+    "exclude": [
+      "node_modules",
+      ".venv",
+      "venv",
+      "testkit",
+      "testkit-reports",
+      "CHANGELOG.md"
+    ],
+    "checkExternal": true
+  },
+  "mobile": {
+    "enabled": "auto",
+    "framework": "auto",
+    "platforms": [
+      "android"
+    ],
+    "appId": "",
+    "android": {
+      "buildCommand": "",
+      "apkPath": "",
+      "apiLevel": 34
+    },
+    "ios": {
+      "buildCommand": "",
+      "appPath": "",
+      "simulator": "iPhone 15"
+    },
+    "staticCommands": {
+      "flutterAnalyze": "flutter analyze",
+      "flutterTest": "flutter test --coverage",
+      "androidLint": "./gradlew lint testDebugUnitTest"
+    },
+    "flowsDir": "testkit/mobile/maestro",
+    "authFlow": "auto",
+    "role": "user",
+    "extraEnv": {
+      "FIRST_SCREEN_ID": "first-screen",
+      "HOME_SCREEN_ID": "home-screen",
+      "OPEN_LOGIN_BUTTON_ID": "open-login",
+      "USERNAME_FIELD_ID": "login-username",
+      "PASSWORD_FIELD_ID": "login-password",
+      "LOGIN_BUTTON_ID": "login-submit",
+      "MFA_CODE_FIELD_ID": "mfa-code",
+      "MFA_SUBMIT_BUTTON_ID": "mfa-submit",
+      "EMAIL_FIELD_ID": "login-email",
+      "SEND_EMAIL_BUTTON_ID": "login-send-email",
+      "EMAIL_SENT_SCREEN_ID": "email-sent",
+      "MENU_BUTTON_ID": "menu-button",
+      "LOGOUT_BUTTON_ID": "logout-button",
+      "LOGOUT_CONFIRM_ID": "logout-confirm",
+      "OAUTH_BUTTON_TEXT": "Entrar com",
+      "PROVIDER_USERNAME_LABEL": "E-mail",
+      "PROVIDER_NEXT_TEXT": "Próximo",
+      "PROVIDER_PASSWORD_LABEL": "Senha",
+      "PROVIDER_SUBMIT_TEXT": "Entrar",
+      "PROVIDER_CONSENT_TEXT": "Permitir"
+    }
+  }
+}

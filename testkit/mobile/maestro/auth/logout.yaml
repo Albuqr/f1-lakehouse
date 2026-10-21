@@ -1,0 +1,28 @@
+# Sair da conta e confirmar que a sessão acabou (inclusive após reabrir o app).
+appId: ${APP_ID}
+name: Sair da conta
+---
+- runFlow:
+    when:
+      visible:
+        id: ${MENU_BUTTON_ID}
+    commands:
+      - tapOn:
+          id: ${MENU_BUTTON_ID}
+- tapOn:
+    id: ${LOGOUT_BUTTON_ID}
+- runFlow:
+    when:
+      visible:
+        id: ${LOGOUT_CONFIRM_ID}
+    commands:
+      - tapOn:
+          id: ${LOGOUT_CONFIRM_ID}
+- extendedWaitUntil:
+    notVisible:
+      id: ${HOME_SCREEN_ID}
+    timeout: 15000
+- stopApp
+- launchApp
+- assertNotVisible:
+    id: ${HOME_SCREEN_ID}
