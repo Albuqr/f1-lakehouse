@@ -1,7 +1,14 @@
 {
-  "project": { "name": "f1-lakehouse" },
-  "auth": { "strategy": "none", "roles": [] },
-  "links": { "checkExternal": false },
+  "project": {
+    "name": "f1-lakehouse"
+  },
+  "auth": {
+    "strategy": "none",
+    "roles": []
+  },
+  "links": {
+    "checkExternal": false
+  },
   "python": {
     "commands": {
       "install": "pip install -r requirements-app.txt",
@@ -9,7 +16,8 @@
       "format": null,
       "typecheck": null,
       "test": null,
-      "audit": "pip-audit -r requirements-app.txt"
+      "audit": "pip-audit -r requirements-app.txt --ignore-vuln CVE-2026-112895 --ignore-vuln CVE-2026-112400 --ignore-vuln CVE-2026-112397 --ignore-vuln CVE-2026-112896 --ignore-vuln CVE-2026-112897 --ignore-vuln CVE-2026-112395 --ignore-vuln CVE-2026-112404 --ignore-vuln CVE-2026-112899"
     }
-  }
+  },
+  "$pillow": "pip-audit ignores only the pillow 12.3.0 advisories listed here (fix only in pillow 13, Streamlit requires pillow<13; the app never decodes user-supplied images). Same list and review date (2027-01-21) as osv-scanner.toml. Any other advisory still fails."
 }
