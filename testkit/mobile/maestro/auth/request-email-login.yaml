@@ -1,0 +1,24 @@
+# Primeira etapa do login por e-mail (link mágico ou código).
+# Para "código", o app pode pedir senha antes — inclua os passos de senha aqui se necessário.
+appId: ${APP_ID}
+name: Solicitar login por e-mail
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: ${OPEN_LOGIN_BUTTON_ID}
+    commands:
+      - tapOn:
+          id: ${OPEN_LOGIN_BUTTON_ID}
+- tapOn:
+    id: ${EMAIL_FIELD_ID}
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn:
+    id: ${SEND_EMAIL_BUTTON_ID}
+- extendedWaitUntil:
+    visible:
+      id: ${EMAIL_SENT_SCREEN_ID}
+    timeout: 20000

@@ -1,0 +1,19 @@
+{
+  "$comentario": "Qualquer fluxo fora do padrão (seleção de empresa, captcha desligado em teste, aceite de termos). Ações: goto, fill, click, press, check, select, waitForUrl, waitForSelector, emailLink, fillEmailCode, wait. Valores: {{username}} {{password}} {{email}} {{totp}} {{token}} {{env.NOME}}.",
+  "auth": {
+    "strategy": "steps",
+    "loginPath": "/",
+    "steps": [
+      { "click": "text=Acessar" },
+      { "select": "#empresa", "value": "{{env.TESTKIT_EMPRESA}}" },
+      { "fill": "#cpf", "value": "{{username}}" },
+      { "fill": "#senha", "value": "{{password}}" },
+      { "check": "#aceite-termos" },
+      { "click": "button:has-text('Entrar')" },
+      { "fill": "#token", "value": "{{totp}}" },
+      { "press": "#token", "key": "Enter" }
+    ],
+    "success": { "selector": "text=Bem-vindo" },
+    "roles": [{ "name": "user", "envPrefix": "TESTKIT_USER", "homePath": "/inicio" }]
+  }
+}

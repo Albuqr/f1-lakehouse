@@ -1,0 +1,18 @@
+{
+  "$comentario": "App Expo/React Native. Node cobre lint/tipos/jest; mobile-static roda expo-doctor; mobile-android compila APK e roda Maestro no emulador. Os ids correspondem a testID nos componentes.",
+  "web": { "enabled": false },
+  "auth": { "strategy": "form-totp", "roles": [{ "name": "user", "envPrefix": "TESTKIT_USER" }] },
+  "mobile": {
+    "appId": "com.empresa.app",
+    "platforms": ["android"],
+    "android": {
+      "buildCommand": "npx expo prebuild --platform android --no-install && cd android && ./gradlew assembleRelease",
+      "apkPath": "android/app/build/outputs/apk/release/app-release.apk"
+    },
+    "ios": {
+      "buildCommand": "npx expo prebuild --platform ios && xcodebuild -workspace ios/App.xcworkspace -scheme App -sdk iphonesimulator -configuration Release -derivedDataPath ios/build",
+      "appPath": "ios/build/Build/Products/Release-iphonesimulator/App.app"
+    },
+    "extraEnv": { "FIRST_SCREEN_ID": "tela-boas-vindas", "HOME_SCREEN_ID": "tela-inicial" }
+  }
+}

@@ -5,3 +5,7 @@ __pycache__/
 .idea/
 .env
 .jupyter_runtime/
+.env.testkit
+testkit-reports/
+testkit/web/node_modules/
+testkit/.bin/

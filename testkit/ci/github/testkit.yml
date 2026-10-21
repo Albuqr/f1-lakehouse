@@ -1,0 +1,280 @@
+# Testkit — suíte completa de verificações.
+# Instalação: copie para .github/workflows/testkit.yml (o install.sh faz isso).
+#
+# Segredos (Settings → Secrets and variables → Actions):
+#   TESTKIT_ENV  -> conteúdo do .env.testkit (uma variável por linha: TESTKIT_ADMIN_USERNAME=...)
+# Variáveis opcionais (aba Variables):
+#   TESTKIT_BASE_URL   -> testar um ambiente já publicado em vez de subir o app no CI
+#   TESTKIT_IOS=true   -> habilita o job de iOS (runner macOS, mais caro)
+name: testkit
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL a testar (vazio = sobe o app localmente)"
+        required: false
+
+concurrency:
+  group: testkit-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  CI: "true"
+  TESTKIT_BASE_URL: ${{ inputs.base_url || vars.TESTKIT_BASE_URL }}
+  NODE_VERSION: "22"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      checks: ${{ steps.detect.outputs.checks }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - name: Validar configuração
+        run: bash testkit/bin/run-all.sh --validate
+      - id: detect
+        name: Detectar verificações
+        run: |
+          checks=$(bash testkit/bin/run-all.sh --detect)
+          echo "checks=$checks" >> "$GITHUB_OUTPUT"
+          echo "Verificações: $checks" >> "$GITHUB_STEP_SUMMARY"
+
+  node:
+    needs: detect
+    if: contains(fromJSON(needs.detect.outputs.checks), 'node')
+    runs-on: ubuntu-latest
+    # Descomente se os testes precisarem de banco:
+    # services:
+    #   postgres:
+    #     image: postgres:16
+    #     env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: test }
+    #     ports: ["5432:5432"]
+    #     options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - run: corepack enable || true
+      - name: Segredos de teste
+        run: printf '%s\n' "$TESTKIT_ENV" > .env.testkit
+        env: { TESTKIT_ENV: "${{ secrets.TESTKIT_ENV }}" }
+      - run: bash testkit/bin/run-all.sh node
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: testkit-node, path: testkit-reports, if-no-files-found: ignore }
+
+  python:
+    needs: detect
+    if: contains(fromJSON(needs.detect.outputs.checks), 'python')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.python }}", cache: pip }
+      - uses: astral-sh/setup-uv@v3
+      - name: Segredos de teste
+        run: printf '%s\n' "$TESTKIT_ENV" > .env.testkit
+        env: { TESTKIT_ENV: "${{ secrets.TESTKIT_ENV }}" }
+      - run: bash testkit/bin/run-all.sh python
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: "testkit-python-${{ matrix.python }}", path: testkit-reports, if-no-files-found: ignore }
+
+  security:
+    needs: detect
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # histórico completo para a busca de segredos
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - run: corepack enable || true
+      - run: bash testkit/bin/run-all.sh security
+      - name: Enviar achados para a aba Security
+        if: always() && hashFiles('testkit-reports/semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with: { sarif_file: testkit-reports/semgrep.sarif, category: semgrep }
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: testkit-security, path: testkit-reports, if-no-files-found: ignore }
+
+  links:
+    needs: detect
+    if: contains(fromJSON(needs.detect.outputs.checks), 'links')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - name: Instalar lychee
+        uses: lycheeverse/lychee-action@v2
+        with: { args: "--version", fail: false }
+      - run: bash testkit/bin/run-all.sh links
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+
+  web:
+    needs: detect
+    if: contains(fromJSON(needs.detect.outputs.checks), 'web')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # services: (mesmo bloco de postgres do job node, se o app precisar)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - run: corepack enable || true
+      - name: Segredos de teste
+        run: printf '%s\n' "$TESTKIT_ENV" > .env.testkit
+        env: { TESTKIT_ENV: "${{ secrets.TESTKIT_ENV }}" }
+      - name: Cache dos navegadores Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('testkit/web/package.json') }}
+      - run: bash testkit/bin/run-all.sh web
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: testkit-web, path: testkit-reports, if-no-files-found: ignore, retention-days: 14 }
+
+  lighthouse:
+    needs: detect
+    if: contains(fromJSON(needs.detect.outputs.checks), 'lighthouse')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - run: corepack enable || true
+      - name: Segredos de teste
+        run: printf '%s\n' "$TESTKIT_ENV" > .env.testkit
+        env: { TESTKIT_ENV: "${{ secrets.TESTKIT_ENV }}" }
+      - run: bash testkit/bin/run-all.sh lighthouse
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: testkit-lighthouse, path: testkit-reports, if-no-files-found: ignore }
+
+  api:
+    needs: detect
+    if: contains(fromJSON(needs.detect.outputs.checks), 'api')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - run: corepack enable || true
+      - name: Segredos de teste
+        run: printf '%s\n' "$TESTKIT_ENV" > .env.testkit
+        env: { TESTKIT_ENV: "${{ secrets.TESTKIT_ENV }}" }
+      - name: Subir app e testar contrato
+        run: |
+          source testkit/bin/lib/common.sh
+          source testkit/bin/lib/server.sh
+          start_app
+          bash testkit/bin/run-all.sh api
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: testkit-api, path: testkit-reports, if-no-files-found: ignore }
+
+  mobile-static:
+    needs: detect
+    if: contains(fromJSON(needs.detect.outputs.checks), 'mobile-static')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - name: Flutter (se houver pubspec.yaml)
+        if: hashFiles('pubspec.yaml') != ''
+        uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: bash testkit/bin/run-all.sh mobile-static
+
+  mobile-android:
+    needs: detect
+    if: contains(fromJSON(needs.detect.outputs.checks), 'mobile-android')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ env.PYTHON_VERSION }}" }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - name: Flutter (se houver pubspec.yaml)
+        if: hashFiles('pubspec.yaml') != ''
+        uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: corepack enable || true
+      - name: Habilitar KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Segredos de teste
+        run: printf '%s\n' "$TESTKIT_ENV" > .env.testkit
+        env: { TESTKIT_ENV: "${{ secrets.TESTKIT_ENV }}" }
+      - name: Emulador + Maestro
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: bash testkit/bin/run-all.sh mobile-android
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: testkit-mobile-android, path: "testkit-reports\n~/.maestro/tests", if-no-files-found: ignore }
+
+  mobile-ios:
+    needs: detect
+    if: vars.TESTKIT_IOS == 'true' && contains(fromJSON(needs.detect.outputs.checks), 'mobile-ios')
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}" }
+      - run: corepack enable || true
+      - name: Iniciar simulador
+        run: |
+          device=$(python3 testkit/bin/lib/config.py get mobile.ios.simulator "iPhone 15")
+          xcrun simctl boot "$device" || true
+          xcrun simctl bootstatus "$device" -b
+      - name: Segredos de teste
+        run: printf '%s\n' "$TESTKIT_ENV" > .env.testkit
+        env: { TESTKIT_ENV: "${{ secrets.TESTKIT_ENV }}" }
+      - run: bash testkit/bin/run-all.sh mobile-ios
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: testkit-mobile-ios, path: testkit-reports, if-no-files-found: ignore }

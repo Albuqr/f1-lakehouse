@@ -1,0 +1,11 @@
+{
+  "$comentario": "Login sem senha por link no e-mail. Precisa de caixa de teste acessível (Mailpit/MailHog local ou endpoint próprio). Para código de 6 dígitos use magicLink.mode = code.",
+  "auth": {
+    "strategy": "magic-link",
+    "loginPath": "/entrar",
+    "magicLink": { "emailSelector": "input[type=email]", "submitSelector": "button[type=submit]", "mode": "link" },
+    "inbox": { "type": "mailpit", "url": "${TESTKIT_INBOX_URL:-http://localhost:8025}" },
+    "success": { "urlPattern": "/app" },
+    "roles": [{ "name": "user", "envPrefix": "TESTKIT_USER", "homePath": "/app" }]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "$comentario": "API Python (FastAPI/Django/Flask) sem interface web: lint, tipos, testes com cobertura, bandit, pip-audit, contrato OpenAPI e checagens de segurança HTTP.",
+  "python": { "sourcePaths": ["app"], "coverageMin": 85 },
+  "web": {
+    "baseUrl": "http://localhost:8000",
+    "setupCommand": "pip install -r requirements.txt",
+    "startCommand": "uvicorn app.main:app --port 8000",
+    "readyPath": "/docs",
+    "publicPages": ["/docs"],
+    "browsers": ["chromium"],
+    "checks": { "responsive": false, "crawl": false, "performance": false },
+    "performance": { "lighthouse": { "enabled": false } }
+  },
+  "auth": {
+    "strategy": "api",
+    "api": { "path": "/auth/token", "contentType": "form", "body": { "username": "{{username}}", "password": "{{password}}" }, "tokenJsonPath": "access_token", "tokenStorage": "header" },
+    "roles": [{ "name": "user", "envPrefix": "TESTKIT_USER" }],
+    "apiRules": [{ "method": "GET", "path": "/users/me", "allow": ["user"], "deny": ["anonymous"] }]
+  },
+  "api": { "openapi": "/openapi.json", "role": "user" }
+}

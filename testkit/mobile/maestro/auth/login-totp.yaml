@@ -1,0 +1,41 @@
+# Login com senha + código do autenticador (TOTP). TOTP_CODE é gerado pelo mobile.sh
+# a partir de <PAPEL>_TOTP_SECRET, com pelo menos 20s de validade restante.
+appId: ${APP_ID}
+name: Login com MFA (TOTP)
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: ${OPEN_LOGIN_BUTTON_ID}
+    commands:
+      - tapOn:
+          id: ${OPEN_LOGIN_BUTTON_ID}
+- tapOn:
+    id: ${USERNAME_FIELD_ID}
+- inputText: ${USERNAME}
+- tapOn:
+    id: ${PASSWORD_FIELD_ID}
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: ${LOGIN_BUTTON_ID}
+- extendedWaitUntil:
+    visible:
+      id: ${MFA_CODE_FIELD_ID}
+    timeout: 20000
+- tapOn:
+    id: ${MFA_CODE_FIELD_ID}
+- inputText: ${TOTP_CODE}
+- runFlow:
+    when:
+      visible:
+        id: ${MFA_SUBMIT_BUTTON_ID}
+    commands:
+      - tapOn:
+          id: ${MFA_SUBMIT_BUTTON_ID}
+- extendedWaitUntil:
+    visible:
+      id: ${HOME_SCREEN_ID}
+    timeout: 30000

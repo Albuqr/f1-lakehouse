@@ -1,0 +1,16 @@
+# Fumaça: o app abre do zero, mostra a primeira tela e não fecha sozinho.
+appId: ${APP_ID}
+name: Abertura do app
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- waitForAnimationToEnd:
+    timeout: 15000
+# Ajuste o texto/id para algo que sempre aparece na primeira tela.
+- extendedWaitUntil:
+    visible:
+      id: ${FIRST_SCREEN_ID}
+    timeout: 20000
+- assertNotVisible: ".*(crashed|has stopped|parou de funcionar|keeps stopping).*"
+- takeScreenshot: testkit-smoke

@@ -1,0 +1,20 @@
+{
+  "$comentario": "SPA que faz login por API e guarda JWT no localStorage. Para sessões por cookie use tokenStorage = cookies (padrão). api.mfa permite um segundo POST com {{totp}}.",
+  "auth": {
+    "strategy": "api",
+    "api": {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "body": { "email": "{{username}}", "password": "{{password}}" },
+      "tokenJsonPath": "data.accessToken",
+      "tokenStorage": "localStorage",
+      "storageKey": "access_token",
+      "mfa": { "path": "/api/auth/mfa", "body": { "code": "{{totp}}" } }
+    },
+    "roles": [
+      { "name": "admin", "envPrefix": "TESTKIT_ADMIN", "homePath": "/admin" },
+      { "name": "user", "envPrefix": "TESTKIT_USER", "homePath": "/" }
+    ],
+    "apiRules": [{ "method": "GET", "path": "/api/admin/stats", "allow": ["admin"], "deny": ["user", "anonymous"] }]
+  }
+}

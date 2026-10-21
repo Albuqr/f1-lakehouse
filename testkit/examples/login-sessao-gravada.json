@@ -1,0 +1,7 @@
+{
+  "$comentario": "Para provedores que bloqueiam automação (Google, Apple, captcha). Grave a sessão uma vez: npx playwright codegen --save-storage=auth.json https://site e aponte TESTKIT_USER_STORAGE_STATE para o arquivo (no CI, gere o arquivo a partir de um segredo). Sessões expiram: renove periodicamente.",
+  "auth": {
+    "strategy": "storage-state",
+    "roles": [{ "name": "user", "envPrefix": "TESTKIT_USER", "homePath": "/home" }]
+  }
+}

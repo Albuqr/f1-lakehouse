@@ -1,0 +1,41 @@
+# Login por provedor externo (OAuth/OIDC/SSO) aberto em navegador do sistema ou WebView.
+# Google, Apple e Microsoft costumam bloquear automação: use um provedor de teste
+# (Keycloak, Auth0/Okta de desenvolvimento) ou um atalho de login de teste no app.
+appId: ${APP_ID}
+name: Login via provedor (OAuth/SSO)
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    text: ${OAUTH_BUTTON_TEXT}
+- extendedWaitUntil:
+    visible:
+      text: ${PROVIDER_USERNAME_LABEL}
+    timeout: 30000
+- tapOn:
+    text: ${PROVIDER_USERNAME_LABEL}
+- inputText: ${USERNAME}
+- runFlow:
+    when:
+      visible:
+        text: ${PROVIDER_NEXT_TEXT}
+    commands:
+      - tapOn:
+          text: ${PROVIDER_NEXT_TEXT}
+- tapOn:
+    text: ${PROVIDER_PASSWORD_LABEL}
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: ${PROVIDER_SUBMIT_TEXT}
+- runFlow:
+    when:
+      visible:
+        text: ${PROVIDER_CONSENT_TEXT}
+    commands:
+      - tapOn:
+          text: ${PROVIDER_CONSENT_TEXT}
+- extendedWaitUntil:
+    visible:
+      id: ${HOME_SCREEN_ID}
+    timeout: 45000

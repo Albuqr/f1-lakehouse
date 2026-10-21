@@ -1,0 +1,20 @@
+# Trechos para copiar para o pyproject.toml do projeto (opcional).
+# Sem eles o testkit usa python/ruff.toml e python/mypy.ini.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --timeout=120"
+markers = [
+  "integration: testes que usam banco/serviços reais",
+  "slow: testes demorados",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["."]
+omit = ["tests/*", "*/migrations/*", ".venv/*", "testkit/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError", "if __name__ == .__main__.:"]

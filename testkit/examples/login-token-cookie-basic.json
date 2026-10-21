@@ -1,0 +1,14 @@
+{
+  "$comentario": "Três papéis com mecanismos fixos: token Bearer (TESTKIT_BOT_TOKEN), cookie de sessão pronto (TESTKIT_SUPORTE_COOKIE) e HTTP Basic (TESTKIT_STAGING_USERNAME/_PASSWORD), comum em ambientes de staging protegidos.",
+  "auth": {
+    "strategy": "bearer",
+    "bearer": { "storage": "header", "headerName": "Authorization", "headerPrefix": "Bearer " },
+    "cookie": { "name": "sessionid", "secure": true },
+    "roles": [
+      { "name": "bot", "envPrefix": "TESTKIT_BOT" },
+      { "name": "suporte", "envPrefix": "TESTKIT_SUPORTE", "strategy": "cookie", "homePath": "/suporte" },
+      { "name": "staging", "envPrefix": "TESTKIT_STAGING", "strategy": "basic", "homePath": "/" }
+    ],
+    "apiRules": [{ "method": "GET", "path": "/api/tickets", "allow": ["bot", "suporte"], "deny": ["anonymous"] }]
+  }
+}

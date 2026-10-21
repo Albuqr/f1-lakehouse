@@ -1,0 +1,22 @@
+{
+  "$comentario": "Botão 'Entrar com ...' que leva a um provedor OIDC/SAML (Keycloak, Auth0, Okta, Entra ID de teste). Google/Apple bloqueiam automação: para eles use storage-state ou um provedor de teste.",
+  "auth": {
+    "strategy": "oauth",
+    "loginPath": "/login",
+    "oauth": {
+      "providerButtonSelector": "button:has-text('Entrar com SSO')",
+      "providerHostPattern": "auth\\.exemplo\\.com|keycloak",
+      "providerUsernameSelector": "#username",
+      "providerPasswordSelector": "#password",
+      "providerSubmitSelector": "#kc-login",
+      "consentSelector": ""
+    },
+    "success": { "urlPattern": "/dashboard" },
+    "logout": { "path": "/logout" },
+    "roles": [
+      { "name": "admin", "envPrefix": "TESTKIT_ADMIN", "homePath": "/admin" },
+      { "name": "user", "envPrefix": "TESTKIT_USER", "homePath": "/dashboard" }
+    ],
+    "rules": [{ "path": "/admin", "allow": ["admin"], "deny": ["user", "anonymous"] }]
+  }
+}

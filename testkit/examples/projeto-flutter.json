@@ -1,0 +1,10 @@
+{
+  "$comentario": "App Flutter: flutter analyze + flutter test (cobertura) + Maestro. Em Flutter, use Semantics(identifier: ...) ou Key para os ids.",
+  "web": { "enabled": false },
+  "mobile": {
+    "appId": "com.empresa.app",
+    "android": { "buildCommand": "flutter build apk --debug", "apkPath": "build/app/outputs/flutter-apk/app-debug.apk" },
+    "authFlow": "form"
+  },
+  "auth": { "strategy": "none", "roles": [{ "name": "user", "envPrefix": "TESTKIT_USER" }] }
+}

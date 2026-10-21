@@ -1,0 +1,7 @@
+# Configuração do workspace Maestro do testkit.
+# Os fluxos de login são executados pelo script mobile.sh conforme auth.strategy
+# (ou mobile.authFlow). Fluxos próprios do app vão em app/ e rodam todos.
+flows:
+  - "app/*"
+executionOrder:
+  continueOnFailure: true

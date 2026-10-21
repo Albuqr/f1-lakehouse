@@ -1,0 +1,28 @@
+# Login com usuário e senha.
+# Ids esperados (testID no React Native, Key no Flutter, resource-id no Android, accessibilityIdentifier no iOS):
+#   USERNAME_FIELD_ID, PASSWORD_FIELD_ID, LOGIN_BUTTON_ID, HOME_SCREEN_ID — defina em mobile.extraEnv.
+appId: ${APP_ID}
+name: Login com usuário e senha
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: ${OPEN_LOGIN_BUTTON_ID}
+    commands:
+      - tapOn:
+          id: ${OPEN_LOGIN_BUTTON_ID}
+- tapOn:
+    id: ${USERNAME_FIELD_ID}
+- inputText: ${USERNAME}
+- tapOn:
+    id: ${PASSWORD_FIELD_ID}
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: ${LOGIN_BUTTON_ID}
+- extendedWaitUntil:
+    visible:
+      id: ${HOME_SCREEN_ID}
+    timeout: 30000

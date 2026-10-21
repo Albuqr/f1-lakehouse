@@ -1,0 +1,11 @@
+{
+  "$comentario": "Senha + código enviado por e-mail (MFA por e-mail). O inbox 'http' chama um endpoint de teste do próprio app que devolve o último e-mail.",
+  "auth": {
+    "strategy": "form-email-code",
+    "loginPath": "/login",
+    "mfa": { "codeSelector": "input[name=code]", "submitSelector": "button[type=submit]" },
+    "inbox": { "type": "http", "url": "https://staging.exemplo.com/__test/last-email?to={{email}}", "headers": { "X-Test-Key": "${TESTKIT_INBOX_KEY}" } },
+    "success": { "urlPattern": "/inicio" },
+    "roles": [{ "name": "user", "envPrefix": "TESTKIT_USER", "homePath": "/inicio" }]
+  }
+}

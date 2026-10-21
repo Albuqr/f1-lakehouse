@@ -1,0 +1,74 @@
+# Testkit para GitLab CI. Inclua no .gitlab-ci.yml do projeto:
+#   include:
+#     - local: testkit/ci/gitlab/testkit.gitlab-ci.yml
+# Variável de CI do tipo "File" chamada TESTKIT_ENV com o conteúdo do .env.testkit.
+# Mobile com emulador exige runner próprio com KVM (não disponível nos runners compartilhados).
+
+stages: [verify, e2e]
+
+variables:
+  CI: "true"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+.testkit:
+  before_script:
+    - if [ -n "$TESTKIT_ENV" ] && [ -f "$TESTKIT_ENV" ]; then cp "$TESTKIT_ENV" .env.testkit; fi
+    - command -v python3 >/dev/null || (apt-get update -qq && apt-get install -y -qq python3 python3-pip python3-venv)
+  artifacts:
+    when: always
+    paths: [testkit-reports/]
+    reports:
+      junit: testkit-reports/*junit*.xml
+    expire_in: 14 days
+
+testkit:node:
+  extends: .testkit
+  stage: verify
+  image: node:22-bookworm
+  rules: [{ exists: [package.json] }]
+  script:
+    - corepack enable || true
+    - bash testkit/bin/run-all.sh node
+
+testkit:python:
+  extends: .testkit
+  stage: verify
+  image: python:3.12
+  rules: [{ exists: [pyproject.toml, requirements.txt, setup.py] }]
+  script:
+    - bash testkit/bin/run-all.sh python
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+
+testkit:security:
+  extends: .testkit
+  stage: verify
+  image: python:3.12
+  variables: { GIT_DEPTH: 0 }
+  script:
+    - apt-get update -qq && apt-get install -y -qq nodejs npm curl git
+    - bash testkit/bin/run-all.sh security
+
+testkit:links:
+  extends: .testkit
+  stage: verify
+  image: node:22-bookworm
+  script:
+    - bash testkit/bin/run-all.sh links
+
+testkit:web:
+  extends: .testkit
+  stage: e2e
+  image: mcr.microsoft.com/playwright:v1.50.0-noble
+  timeout: 1h
+  script:
+    - apt-get update -qq && apt-get install -y -qq python3
+    - bash testkit/bin/run-all.sh web lighthouse
+
+testkit:api:
+  extends: .testkit
+  stage: e2e
+  image: python:3.12
+  rules: [{ if: '$TESTKIT_API == "true"' }]
+  script:
+    - apt-get update -qq && apt-get install -y -qq nodejs npm
+    - source testkit/bin/lib/common.sh && source testkit/bin/lib/server.sh && start_app && bash testkit/bin/run-all.sh api
